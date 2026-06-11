@@ -1,0 +1,41 @@
+export interface Product {
+  sku: string;
+  name: string;
+  image: string;
+  price: number;
+}
+
+export interface Bundle {
+  id: string;
+  name: string;
+  description: string;
+  products: Product[];
+  totalPrice: number;
+}
+
+export interface CustomerAnswers {
+  deviceType: string;
+  industry: string;
+  useCase: string;
+  jobTitle: string;
+}
+
+export interface ContactInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  company: string;
+}
+
+export type SalesPath = "contact_sales" | "purchase_now";
+
+export interface HubSpotDealPayload {
+  customerAnswers: CustomerAnswers;
+  selectedBundle: {
+    id: string;
+    name: string;
+    totalPrice: number;
+  };
+  path: SalesPath;
+  contactInfo: ContactInfo;
+}

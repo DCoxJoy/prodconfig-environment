@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Product Configurator — Phase 1 Build
+
+This is a Next.js 14+ App Router project featuring an interactive product configurator wizard. The stack is built using TypeScript and Tailwind CSS, with server-side routes configured to connect to HubSpot CRM and prepared for BigCommerce integrations.
+
+## Stack
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS v4
+- **Language**: TypeScript
+- **CRM Integration**: HubSpot CRM (Contacts & Deals)
+- **Deployment Target**: Vercel
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Prerequisites
+- **Node.js**: v18.17.0 or higher (we recommend using Node.js v20)
+- **HubSpot Account**: (Optional for local testing if mock settings are used) A Private App Access Token with `crm.objects.contacts.write` and `crm.objects.deals.write` scopes.
+
+### 2. Environment Variables Setup
+Create a `.env.local` file in the root of the project. A template `.env.example` has been provided:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# HubSpot Credentials
+HUBSPOT_ACCESS_TOKEN=your_hubspot_private_app_token_here
+HUBSPOT_PIPELINE_ID=your_hubspot_pipeline_id_here
+HUBSPOT_DEAL_STAGE_ID=your_deal_stage_id_here
+
+# BigCommerce Credentials (readiness for Phase 2)
+BC_STORE_HASH=your_store_hash_here
+BC_ACCESS_TOKEN=your_access_token_here
+BC_CLIENT_ID=your_client_id_here
+
+# Gemini API Credentials (readiness for Phase 2)
+GEMINI_API_KEY=your_google_cloud_gemini_api_key_here
+
+# Application URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Installation
+Install the project dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Running the Development Server
+Run the local dev server using Node.js v20:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application will be available at [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Folder Layout & Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+/src
+  /app
+    /page.tsx                  ← Configurator entry point (wizard flow state management)
+    /layout.tsx                ← Root layout importing Tailwind & Geist Sans font
+    /api
+      /hubspot
+        /route.ts              ← HubSpot CRM contact + deal creation endpoint
+      /cart
+        /route.ts              ← Cart creation stub route (Phase 1 mock)
+      /products
+        /route.ts              ← Products API placeholder (Phase 2)
+      /recommend
+        /route.ts              ← Gemini recommendations placeholder (Phase 2)
+  /components
+    /configurator
+      /StepOne.tsx             ← Step 1: Device type question (Tablet, Handheld, etc.)
+      /StepTwo.tsx             ← Step 2: Industry selection (Logistics, Field Service, etc.)
+      /StepThree.tsx           ← Step 3: Use case selection (Inventory, Inspections, etc.)
+      /StepFour.tsx            ← Step 4: Job Title / Position capture (Operations, IT, etc.)
+      /BundleDisplay.tsx       ← Custom premium glassmorphic recommended bundle dashboard
+      /ConfirmationButtons.tsx ← "Contact Sales" (with input modal) & "Purchase Now" buttons
+    /ui
+      /LoadingSpinner.tsx      ← Sleek double-spinning loading indicator
+  /lib
+    /hubspot.ts                ← HubSpot API helper clients (search, create, update, associate)
+    /hardcodedBundles.ts       ← Hardcoded starter bundle representation for Phase 1
+    /bigcommerce.ts            ← BigCommerce client stub
+    /gemini.ts                 ← Gemini API client stub
+  /types
+    /index.ts                  ← Shared type interfaces
+.env.local                     ← Ignored by git
+.env.example                   ← Committed template
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Validation & Verification
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Production Build
+Verify TypeScript and next compilation by running:
+```bash
+npm run build
+```
+This builds and prerenders all pages, verifying the code compiles successfully.
