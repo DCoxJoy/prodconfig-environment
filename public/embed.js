@@ -7,6 +7,8 @@
   // Configuration options from script data attributes
   const position = scriptEl.getAttribute("data-position") || "bottom-right"; // bottom-right, bottom-left, top-right, top-left
   const startOpen = scriptEl.getAttribute("data-open") === "true";
+  const width = scriptEl.getAttribute("data-width") || "390px";
+  const height = scriptEl.getAttribute("data-height") || "620px";
 
   // Create styling
   const style = document.createElement("style");
@@ -67,8 +69,8 @@
 
     /* Iframe Container */
     .agc-frame-container {
-      width: 390px;
-      height: 620px;
+      width: ${width};
+      height: ${height};
       max-height: calc(100vh - 120px);
       max-width: calc(100vw - 40px);
       background: #020617;
