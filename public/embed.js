@@ -1,14 +1,32 @@
 (function () {
-  // Get script elements to read parameters
-  const scriptEl = document.currentScript;
-  const scriptUrl = new URL(scriptEl.src);
-  const baseUrl = scriptUrl.origin;
+  // Safe extraction of script element
+  let scriptEl = document.currentScript;
+  if (!scriptEl) {
+    // Fallback: search for the script tag in the document
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].src && scripts[i].src.indexOf("/embed.js") !== -1) {
+        scriptEl = scripts[i];
+        break;
+      }
+    }
+  }
 
-  // Configuration options from script data attributes
-  const position = scriptEl.getAttribute("data-position") || "bottom-right"; // bottom-right, bottom-left, top-right, top-left
-  const startOpen = scriptEl.getAttribute("data-open") === "true";
-  const width = scriptEl.getAttribute("data-width") || "390px";
-  const height = scriptEl.getAttribute("data-height") || "620px";
+  // Determine base URL (Next.js server location)
+  let baseUrl = window.location.origin;
+  if (scriptEl && scriptEl.src) {
+    try {
+      baseUrl = new URL(scriptEl.src).origin;
+    } catch (e) {
+      console.error("[Configurator Embed] Failed to parse script source URL:", e);
+    }
+  }
+
+  // Configuration options from script data attributes with defaults
+  const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // bottom-right, bottom-left, top-right, top-left
+  const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
+  const width = (scriptEl && scriptEl.getAttribute("data-width")) || "390px";
+  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "620px";
 
   // Create styling
   const style = document.createElement("style");
@@ -140,6 +158,10 @@
   container.appendChild(fab);
   document.body.appendChild(container);
 
+  // Reference SVG nodes directly within the FAB container
+  const iconOpen = fab.querySelector("#agc-icon-open");
+  const iconClose = fab.querySelector("#agc-icon-close");
+
   // Toggle Functionality
   let isOpen = false;
 
@@ -148,13 +170,13 @@
     if (isOpen) {
       frameContainer.classList.add("agc-active");
       fab.classList.add("agc-active");
-      document.getElementById("agc-icon-open").style.display = "none";
-      document.getElementById("agc-icon-close").style.display = "block";
+      if (iconOpen) iconOpen.style.display = "none";
+      if (iconClose) iconClose.style.display = "block";
     } else {
       frameContainer.classList.remove("agc-active");
       fab.classList.remove("agc-active");
-      document.getElementById("agc-icon-open").style.display = "block";
-      document.getElementById("agc-icon-close").style.display = "none";
+      if (iconOpen) iconOpen.style.display = "block";
+      if (iconClose) iconClose.style.display = "none";
     }
   }
 
