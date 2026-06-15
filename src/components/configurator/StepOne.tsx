@@ -1,113 +1,188 @@
 "use client";
 
-import React from "react";
-
-interface Option {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}
+import React, { useState } from "react";
+import { deviceFamilies, DeviceFamily } from "../../lib/deviceTypes";
 
 interface StepOneProps {
   selected: string;
   onChange: (value: string) => void;
 }
 
+const FAMILY_ICONS: Record<string, React.ReactNode> = {
+  ipad: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+    </svg>
+  ),
+  surface: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h6" />
+    </svg>
+  ),
+  iphone: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H13.5M10.5 22.5H13.5M9 3.75H15M6.75 20.25h10.5A2.25 2.25 0 0019.5 18V6A2.25 2.25 0 0017.25 3.75H6.75A2.25 2.25 0 004.5 6v12a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  ),
+  universal: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  ),
+};
+
+function findFamilyByModelId(modelId: string): DeviceFamily | undefined {
+  return deviceFamilies.find((family) => family.models.some((model) => model.id === modelId));
+}
+
 export default function StepOne({ selected, onChange }: StepOneProps) {
-  const options: Option[] = [
-    {
-      id: "rugged_tablet",
-      title: "Rugged Tablet",
-      description: "Large 8-10\" display, durable casing, ideal for mobile data viewing and diagnostics.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
-        </svg>
-      ),
-    },
-    {
-      id: "handheld_computer",
-      title: "Rugged Handheld",
-      description: "Pocket-sized with integrated barcode scanner, optimized for high-volume scanning.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H13.5M10.5 22.5H13.5M9 3.75H15M6.75 20.25h10.5A2.25 2.25 0 0019.5 18V6A2.25 2.25 0 0017.25 3.75H6.75A2.25 2.25 0 004.5 6v12a2.25 2.25 0 002.25 2.25z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 13.5h.008v.008H9v-.008zm3 0h.008v.008H12v-.008zm3 0h.008v.008H15v-.008zm-6 3h.008v.008H9v-.008zm3 0h.008v.008H12v-.008zm3 0h.008v.008H15v-.008z" />
-        </svg>
-      ),
-    },
-    {
-      id: "vehicle_mount",
-      title: "Vehicle-Mount Computer",
-      description: "Heavy-duty terminals designed to withstand extreme vibration in forklift/cabin environments.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124l-.32-5.112c-.053-.846-.74-1.504-1.59-1.504H13.5m0-6H7.575a1.125 1.125 0 00-1.124 1.125v9h12a1.125 1.125 0 001.124-1.125V8.25c0-.621-.504-1.125-1.125-1.125H13.5V3.75z" />
-        </svg>
-      ),
-    },
-    {
-      id: "wearable_computer",
-      title: "Industrial Wearable",
-      description: "Hands-free arm-mount computers paired with ring-style scanners for maximum packing efficiency.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.05 4.575a1.5 1.5 0 11-2.1-.21 1.5 1.5 0 012.1.21zm0 0l-3.9 3.9M13.5 10.5v6.75a2.25 2.25 0 01-2.25 2.25H9A2.25 2.25 0 016.75 17.25V13.5M9 3h3a3 3 0 013 3v2.25M9 3v3.75M19.5 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-    },
-  ];
+  const [activeFamilyId, setActiveFamilyId] = useState<string | null>(
+    () => findFamilyByModelId(selected)?.id ?? null
+  );
+  const [query, setQuery] = useState("");
+
+  const activeFamily = deviceFamilies.find((family) => family.id === activeFamilyId) ?? null;
+
+  const handleFamilyClick = (family: DeviceFamily) => {
+    if (family.models.length === 1) {
+      onChange(family.models[0].id);
+      setActiveFamilyId(family.id);
+      return;
+    }
+    setActiveFamilyId(family.id);
+    setQuery("");
+  };
+
+  const handleBackToFamilies = () => {
+    setActiveFamilyId(null);
+    setQuery("");
+  };
+
+  if (activeFamily) {
+    const filteredModels = activeFamily.models.filter((model) =>
+      model.name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <div className="text-center sm:text-left">
+          <button
+            onClick={handleBackToFamilies}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#DB0032] transition-colors mb-2"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            All device families
+          </button>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Which {activeFamily.name} model do you have?
+          </h2>
+          <p className="mt-2 text-slate-500 text-sm">
+            We&apos;ll match accessories built specifically for your device.
+          </p>
+        </div>
+
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search models..."
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DB0032]/20 focus:border-[#DB0032]/40 transition-all"
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+          {filteredModels.map((model) => {
+            const isSelected = selected === model.id;
+            return (
+              <button
+                key={model.id}
+                onClick={() => onChange(model.id)}
+                className={`group relative text-left px-4 py-3 rounded-xl border transition-all duration-200 outline-none flex items-center justify-between gap-3 ${
+                  isSelected
+                    ? "bg-red-50/40 border-[#DB0032] shadow-sm ring-1 ring-[#DB0032]/20"
+                    : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
+                }`}
+              >
+                <span
+                  className={`font-medium text-sm ${
+                    isSelected ? "text-slate-950" : "text-slate-700 group-hover:text-slate-900"
+                  }`}
+                >
+                  {model.name}
+                </span>
+                <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 flex-shrink-0">
+                  {model.compatibleProducts} accessories
+                </span>
+              </button>
+            );
+          })}
+          {filteredModels.length === 0 && (
+            <p className="col-span-full text-center text-sm text-slate-400 py-6">
+              No models match &quot;{query}&quot;.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="text-center sm:text-left">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-200 via-slate-100 to-cyan-100 bg-clip-text text-transparent">
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
           What type of device are you configuring?
         </h2>
-        <p className="mt-2 text-slate-400 text-sm">
-          Select the form factor that best fits your workflow requirements.
+        <p className="mt-2 text-slate-500 text-sm">
+          Select your device family to see compatible accessories.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {options.map((option) => {
-          const isSelected = selected === option.id;
+        {deviceFamilies.map((family) => {
+          const isSelected =
+            activeFamilyId === family.id || findFamilyByModelId(selected)?.id === family.id;
           return (
             <button
-              key={option.id}
-              onClick={() => onChange(option.id)}
-              className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 backdrop-blur-md outline-none ${
+              key={family.id}
+              onClick={() => handleFamilyClick(family)}
+              className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 outline-none ${
                 isSelected
-                  ? "bg-indigo-950/30 border-indigo-500 shadow-[0_0_20px_-3px_rgba(99,102,241,0.25)]"
-                  : "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
+                  ? "bg-red-50/40 border-[#DB0032] shadow-md shadow-red-500/5 ring-1 ring-[#DB0032]/20"
+                  : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60 shadow-sm"
               }`}
             >
-              {/* Decorative gradient corner */}
+              {/* Decorative brand gradient corner */}
               <div
-                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-tr-2xl`}
+                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#DB0032]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-tr-2xl`}
               ></div>
 
               <div className="flex gap-4 items-start relative z-10">
+                {/* Icon Container Frame */}
                 <div
                   className={`p-3 rounded-xl transition-all duration-300 ${
                     isSelected
-                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-105"
-                      : "bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-200"
+                      ? "bg-[#DB0032] text-white shadow-md shadow-[#DB0032]/20 scale-105"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-700"
                   }`}
                 >
-                  {option.icon}
+                  {FAMILY_ICONS[family.id]}
                 </div>
+
+                {/* Text Content Area */}
                 <div className="space-y-1">
                   <h3
                     className={`font-semibold text-base transition-colors duration-300 ${
-                      isSelected ? "text-indigo-200" : "text-slate-100 group-hover:text-white"
+                      isSelected ? "text-slate-950 font-bold" : "text-slate-800 group-hover:text-slate-900"
                     }`}
                   >
-                    {option.title}
+                    {family.name}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    {option.description}
+                  <p className={`text-xs leading-relaxed transition-colors duration-300 ${
+                    isSelected ? "text-slate-700" : "text-slate-500"
+                  }`}>
+                    {family.description}
                   </p>
                 </div>
               </div>

@@ -11,6 +11,13 @@ export interface Bundle {
   description: string;
   products: Product[];
   totalPrice: number;
+  /** Categories this bundle is tagged with in the catalog (device type, industry, use case). */
+  tags?: string[];
+}
+
+export interface BundleRecommendation {
+  bundle: Bundle;
+  reasoning: string;
 }
 
 export interface CustomerAnswers {

@@ -17,43 +17,43 @@ interface StepFourProps {
 export default function StepFour({ selected, onChange }: StepFourProps) {
   const options: Option[] = [
     {
-      id: "operations_manager",
-      title: "Operations / Operations Manager",
-      description: "Responsible for daily facility workflows, resource scheduling, and throughput efficiency.",
+      id: "inventory",
+      title: "Inventory Control & Picking",
+      description: "Real-time stock queries, inventory counting, fast picking, sorting, and dispatch tracking.",
       icon: (
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.771m.94 3.197a5.971 5.971 0 00-.94 3.198M12 10a3 3 0 110-6 3 3 0 010 6zm0 0a3 3 0 100-6 3 3 0 000 6zm5.83 5.378a3 3 0 11-3.07-5.045 3 3 0 013.07 5.045zm-11.66 0a3 3 0 10-3.07-5.045 3 3 0 003.07 5.045z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.03 0 1.9.693 2.166 1.638m-7.377 2.24A2.25 2.25 0 019 8.25v10.5a2.25 2.25 0 002.25 2.25h6.75A2.25 2.25 0 0020.25 18.75V8.25A2.25 2.25 0 0118 6H9z" />
         </svg>
       ),
     },
     {
-      id: "it_director",
-      title: "IT Director / Systems Admin",
-      description: "Handles device fleet provisioning, MDM configuration, network security, and app deployments.",
+      id: "inspections",
+      title: "Safety Inspections & Audits",
+      description: "Asset compliance checklists, field incident reporting, photo capture, and electronic logs.",
       icon: (
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3V5.25a3 3 0 013-3h13.5a3 3 0 013 3v6a3 3 0 01-3 3m-13.5 0v3a3 3 0 003 3h13.5a3 3 0 003-3v-3M12 17.25h.008v.008H12v-.008z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
     {
-      id: "field_supervisor",
-      title: "Field Supervisor / Team Lead",
-      description: "Directs dispatch, coordinates on-site teams, performs inspections, and reports to operations.",
+      id: "delivery",
+      title: "Proof of Delivery",
+      description: "Courier route optimization, barcode tracking, signature capture, and delivery verification.",
       icon: (
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
         </svg>
       ),
     },
     {
-      id: "procurement_officer",
-      title: "Procurement / Purchasing Agent",
-      description: "Manages hardware budgets, supplier relations, bulk device leasing, and contract negotiations.",
+      id: "diagnostics",
+      title: "Equipment Diagnostics",
+      description: "Heavy machinery telemetry readings, maintenance logging, work order generation, and specs check.",
       icon: (
         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.2 0 .75.75 0 011.2 0zm12.75 0a.75.75 0 11-1.2 0 .75.75 0 011.2 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
         </svg>
       ),
     },
@@ -61,15 +61,17 @@ export default function StepFour({ selected, onChange }: StepFourProps) {
 
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* High-contrast accessible title and subheader layout */}
       <div className="text-center sm:text-left">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-200 via-slate-100 to-cyan-100 bg-clip-text text-transparent">
-          What is your Job Title / Position?
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          What is your primary use case?
         </h2>
-        <p className="mt-2 text-slate-400 text-sm">
-          This helps us customize our setup support and integration guides for your specific role.
+        <p className="mt-2 text-slate-500 text-sm">
+          Select the core workflow function this device configuration will support.
         </p>
       </div>
 
+      {/* Grid framework mapped to white layouts and corporate branding hooks */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {options.map((option) => {
           const isSelected = selected === option.id;
@@ -77,35 +79,41 @@ export default function StepFour({ selected, onChange }: StepFourProps) {
             <button
               key={option.id}
               onClick={() => onChange(option.id)}
-              className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 backdrop-blur-md outline-none ${
+              className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 outline-none ${
                 isSelected
-                  ? "bg-indigo-950/30 border-indigo-500 shadow-[0_0_20px_-3px_rgba(99,102,241,0.25)]"
-                  : "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
+                  ? "bg-red-50/40 border-[#DB0032] shadow-md shadow-red-500/5 ring-1 ring-[#DB0032]/20"
+                  : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60 shadow-sm"
               }`}
             >
+              {/* Subtle top-right branded mesh highlight */}
               <div
-                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-tr-2xl`}
+                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#DB0032]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-tr-2xl`}
               ></div>
 
               <div className="flex gap-4 items-start relative z-10">
+                {/* Micro icon container wrapper */}
                 <div
                   className={`p-3 rounded-xl transition-all duration-300 ${
                     isSelected
-                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30 scale-105"
-                      : "bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-200"
+                      ? "bg-[#DB0032] text-white shadow-md shadow-[#DB0032]/20 scale-105"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-700"
                   }`}
                 >
                   {option.icon}
                 </div>
+
+                {/* Local typographic elements mapped to light canvas depth parameters */}
                 <div className="space-y-1">
                   <h3
                     className={`font-semibold text-base transition-colors duration-300 ${
-                      isSelected ? "text-indigo-200" : "text-slate-100 group-hover:text-white"
+                      isSelected ? "text-slate-950 font-bold" : "text-slate-800 group-hover:text-slate-900"
                     }`}
                   >
                     {option.title}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className={`text-xs leading-relaxed transition-colors duration-300 ${
+                    isSelected ? "text-slate-700" : "text-slate-500"
+                  }`}>
                     {option.description}
                   </p>
                 </div>
