@@ -10,7 +10,7 @@ import StepFour from "../components/configurator/StepFour";
 import BundleDisplay from "../components/configurator/BundleDisplay";
 import ConfirmationButtons from "../components/configurator/ConfirmationButtons";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
-import { bundles } from "../lib/hardcodedBundles";
+import { fallbackBundle } from "../lib/redzoneCatalog";
 import { CustomerAnswers, ContactInfo, BundleRecommendation } from "../types";
 
 function ConfiguratorContent() {
@@ -34,7 +34,7 @@ function ConfiguratorContent() {
   const [recommendError, setRecommendError] = useState<string | null>(null);
 
   // Fall back to the first catalog bundle if Claude's recommendation hasn't loaded.
-  const selectedBundle = recommendation?.bundle ?? bundles[0];
+  const selectedBundle = recommendation?.bundle ?? fallbackBundle;
 
   const updateAnswer = (key: keyof CustomerAnswers, value: string) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
@@ -219,7 +219,7 @@ const cardClass = isEmbed
                 />
               </div>
               <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-                PRODUCT CONFIGURATOR
+                REDZONE PRODUCT CONFIGURATOR
               </span>
             </div>
             <p className="text-slate-500 text-xs uppercase tracking-widest font-semibold">
@@ -343,6 +343,7 @@ const cardClass = isEmbed
                   <StepThree
                     selected={answers.jobTitle}
                     onChange={(val) => updateAnswer("jobTitle", val)}
+                    industry={answers.industry}
                   />
                 )}
                 {step === 4 && (

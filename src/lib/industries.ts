@@ -8,43 +8,33 @@ export interface Industry {
 // Replace with a live fetch once /api/products is wired up.
 export const industries: Industry[] = [
   {
-    id: "manufacturing",
-    name: "Manufacturing",
-    description: "Work-in-progress tracking, quality control audits, and assembly line tooling.",
+    id: "food_beverage",
+    name: "Food and Beverage",
+    description: "Food production, beverage manufacturing, and processing line operations.",
   },
   {
-    id: "oil_gas",
-    name: "Oil & Gas",
-    description: "Rugged field data collection for upstream, midstream, and downstream operations.",
+    id: "cpg",
+    name: "Consumer Packaged Goods (CPG)",
+    description: "Household, organic, and retail-ready consumer product manufacturing.",
   },
   {
-    id: "construction",
-    name: "Construction",
-    description: "Jobsite project management, equipment tracking, and on-site documentation.",
+    id: "automotive",
+    name: "Automotive",
+    description: "Parts suppliers and vehicle manufacturers streamlining production and quality control.",
   },
   {
-    id: "energy_utilities",
-    name: "Energy & Utilities",
-    description: "Grid maintenance, meter reading, and infrastructure inspection workflows.",
+    id: "life_sciences",
+    name: "Life Sciences",
+    description: "Medical device and pharmaceutical manufacturing with strict regulatory compliance and documentation.",
   },
   {
-    id: "warehouse_logistics",
-    name: "Warehouse & Logistics",
-    description: "Inventory tracking, order fulfillment, cross-docking, and barcode scanning.",
+    id: "industrial_hightech",
+    name: "Industrial and High-Tech Manufacturing",
+    description: "Component assembly, electronics, and specialized industrial equipment production.",
   },
   {
-    id: "healthcare",
-    name: "Healthcare",
-    description: "Patient record access, asset tracking, and point-of-care data capture.",
-  },
-  {
-    id: "retail",
-    name: "Retail",
-    description: "Point-of-sale, inventory lookups, and in-store fulfillment tasks.",
-  },
-  {
-    id: "hospitality",
-    name: "Hospitality",
-    description: "Guest services, housekeeping coordination, and front-desk operations.",
+    id: "distribution_logistics",
+    name: "Distribution and Logistics",
+    description: "Warehousing, supply chain execution, and distribution network operations.",
   },
 ];

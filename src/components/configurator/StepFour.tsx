@@ -1,64 +1,42 @@
 "use client";
 
 import React from "react";
-
-interface Option {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}
+import { useCases } from "../../lib/useCases";
 
 interface StepFourProps {
   selected: string;
   onChange: (value: string) => void;
 }
 
-export default function StepFour({ selected, onChange }: StepFourProps) {
-  const options: Option[] = [
-    {
-      id: "inventory",
-      title: "Inventory Control & Picking",
-      description: "Real-time stock queries, inventory counting, fast picking, sorting, and dispatch tracking.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.03 0 1.9.693 2.166 1.638m-7.377 2.24A2.25 2.25 0 019 8.25v10.5a2.25 2.25 0 002.25 2.25h6.75A2.25 2.25 0 0020.25 18.75V8.25A2.25 2.25 0 0118 6H9z" />
-        </svg>
-      ),
-    },
-    {
-      id: "inspections",
-      title: "Safety Inspections & Audits",
-      description: "Asset compliance checklists, field incident reporting, photo capture, and electronic logs.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      id: "delivery",
-      title: "Proof of Delivery",
-      description: "Courier route optimization, barcode tracking, signature capture, and delivery verification.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
-        </svg>
-      ),
-    },
-    {
-      id: "diagnostics",
-      title: "Equipment Diagnostics",
-      description: "Heavy machinery telemetry readings, maintenance logging, work order generation, and specs check.",
-      icon: (
-        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-        </svg>
-      ),
-    },
-  ];
+const USE_CASE_ICONS: Record<string, React.ReactNode> = {
+  floor_walks: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+    </svg>
+  ),
+  fixed_workstation: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+    </svg>
+  ),
+  forklift_mobile_equipment: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-.5v5.5m0-5.5h2.605c-.052-.658-.121-1.31-.205-1.952" />
+    </svg>
+  ),
+  wall_kiosk: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4.5 21V3h6v18M16.5 21V9h3.75v12M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5" />
+    </svg>
+  ),
+  maintenance_work_orders: (
+    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-3.61 7.794l3.61-7.794m0 0L8.93 6.652" />
+    </svg>
+  ),
+};
 
+export default function StepFour({ selected, onChange }: StepFourProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* High-contrast accessible title and subheader layout */}
@@ -67,18 +45,18 @@ export default function StepFour({ selected, onChange }: StepFourProps) {
           What is your primary use case?
         </h2>
         <p className="mt-2 text-slate-500 text-sm">
-          Select the core workflow function this device configuration will support.
+          This determines the mounting hardware and accessories included in your bundle.
         </p>
       </div>
 
       {/* Grid framework mapped to white layouts and corporate branding hooks */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {options.map((option) => {
-          const isSelected = selected === option.id;
+        {useCases.map((useCase) => {
+          const isSelected = selected === useCase.id;
           return (
             <button
-              key={option.id}
-              onClick={() => onChange(option.id)}
+              key={useCase.id}
+              onClick={() => onChange(useCase.id)}
               className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 outline-none ${
                 isSelected
                   ? "bg-red-50/40 border-[#DB0032] shadow-md shadow-red-500/5 ring-1 ring-[#DB0032]/20"
@@ -99,7 +77,7 @@ export default function StepFour({ selected, onChange }: StepFourProps) {
                       : "bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 group-hover:text-slate-700"
                   }`}
                 >
-                  {option.icon}
+                  {USE_CASE_ICONS[useCase.id]}
                 </div>
 
                 {/* Local typographic elements mapped to light canvas depth parameters */}
@@ -109,12 +87,12 @@ export default function StepFour({ selected, onChange }: StepFourProps) {
                       isSelected ? "text-slate-950 font-bold" : "text-slate-800 group-hover:text-slate-900"
                     }`}
                   >
-                    {option.title}
+                    {useCase.title}
                   </h3>
                   <p className={`text-xs leading-relaxed transition-colors duration-300 ${
                     isSelected ? "text-slate-700" : "text-slate-500"
                   }`}>
-                    {option.description}
+                    {useCase.description}
                   </p>
                 </div>
               </div>
