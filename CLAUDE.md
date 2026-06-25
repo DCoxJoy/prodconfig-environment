@@ -2,23 +2,88 @@
 ## Phase 1 Build Instructions for Claude Code
 
 **Project:** Joy Factory aXtion guided selling configurator  
-**Stack:** Next.js 14+ (App Router), TypeScript, Tailwind CSS  
+**Stack:** Next.js 14+ (App Router), TypeScript, Tailwind CSS v4  
 **AI:** Anthropic Claude API (claude-sonnet-4-6) — server-side only  
 **Integrations:** BigCommerce Storefront API, HubSpot CRM API  
 **Deployment target:** Vercel  
 
 ---
 
+## CURRENT STATUS — PHASE 1 COMPLETE
+
+**All 27 source files are built, type-checked, and running.** Do not delete or rebuild from scratch. Pick up from here.
+
+### What's done
+- All 5 steps + Contact Sales step fully implemented and navigable
+- Comprehensive UI overhaul: consistent spacing scale, visible borders, proper typography hierarchy
+- Real Claude API call wired in (`/api/claude` → StepBundle "Why this bundle fits" section)
+- HubSpot and BigCommerce cart API routes implemented (Phase 1 hardcoded data)
+- embed.js widget in `/public/embed.js` for drop-in iframe embedding on external sites
+
+### Dev server
+Requires Node v20 via nvm:
+```bash
+source ~/.nvm/nvm.sh && nvm use 20.20.2 && npm run dev
+```
+Runs on **localhost:3000**.
+
+### Key files — actual current state (supersedes Step 11 below)
+
+**`src/app/page.tsx`** — current:
+```tsx
+import { ConfiguratorProvider } from '../lib/ConfiguratorContext';
+import ConfiguratorShell from '../components/configurator/ConfiguratorShell';
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-stone-100 flex justify-center items-start">
+      <div className="w-full max-w-[720px] page-outer">
+        <ConfiguratorProvider>
+          <ConfiguratorShell />
+        </ConfiguratorProvider>
+      </div>
+    </main>
+  );
+}
+```
+
+**`src/app/globals.css`** — current structure:
+```css
+@import "tailwindcss";
+
+/* Design tokens */
+:root { ... }
+@theme { --color-brand: #c8291c; --color-brand-hover: #a8221a; --color-share: #534AB7; }
+
+/* Base resets — MUST stay in @layer base (see Tailwind v4 gotcha below) */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: ...; background: var(--color-bg); ... }
+}
+
+/* Page layout — plain unlayered class for guaranteed top/bottom gap */
+.page-outer { padding: 3.5rem 1.25rem; }
+
+/* Shared utilities */
+@utility item-list { border: 1px solid #d6d3d1; border-radius: 14px; overflow: hidden; }
+@utility hint-strip { ... }
+
+@keyframes fadeIn { ... }
+```
+
+### CRITICAL: Tailwind v4 CSS cascade layer gotcha
+
+Tailwind v4 places all utility classes inside `@layer utilities`. Any CSS written outside a named layer (unlayered) sits **above** all named layers in the cascade and will override Tailwind utilities regardless of specificity. This means:
+
+- **Base resets (`* { margin: 0; padding: 0 }`) MUST go inside `@layer base`**, not bare in the stylesheet. Otherwise they silently zero out all Tailwind margin/padding utilities.
+- **For critical layout spacing** (page-level padding), use a plain CSS class in globals.css (like `.page-outer`) rather than Tailwind utilities. Unlayered class selectors (specificity 0,1,0) beat the `@layer base` reset (specificity 0,0,0) and are immune to layer conflicts.
+- Do NOT write bare `*, body, html` rules outside a layer — they will break spacing utilities globally.
+
+---
+
 ## STRATEGY BEFORE TOUCHING ANY CODE
 
-This is a full rebuild. The existing `PRODCONFIG-ENVIRONMENT` project has placeholder UI and an incompatible data model. Do not attempt to migrate any existing component, type, or data file. The only things to preserve from the existing project are:
-
-- `package.json` dependencies (Next.js, TypeScript, Tailwind) — keep and extend
-- `.env.local` — keep all existing API keys, add new ones as needed
-- `next.config.ts` — keep unless it conflicts
-- `eslint.config.mjs` — keep
-
-Everything in `src/` should be deleted and rebuilt from scratch following these instructions.
+~~This is a full rebuild.~~ Phase 1 is complete. Read the current state above before making any changes. The steps below are historical build instructions — use them as reference for how the code is structured, not as instructions to re-run.
 
 ---
 
@@ -687,54 +752,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-**`src/app/page.tsx`**
-```tsx
-import { ConfiguratorProvider } from '../lib/ConfiguratorContext';
-import ConfiguratorShell from '../components/configurator/ConfiguratorShell';
+**`src/app/page.tsx`** — see CURRENT STATUS section above for the actual file.
 
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-stone-100 flex items-start justify-center px-4 py-8">
-      <div className="w-full max-w-[560px]">
-        <ConfiguratorProvider>
-          <ConfiguratorShell />
-        </ConfiguratorProvider>
-      </div>
-    </main>
-  );
-}
-```
-
-**`src/app/globals.css`**
-Define CSS custom properties to match the prototype's design tokens:
-```css
-:root {
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #f5f5f4;
-  --color-border-tertiary: #e7e5e4;
-  --color-border-secondary: #d6d3d1;
-  --color-text-primary: #1c1917;
-  --color-text-secondary: #57534e;
-  --color-text-tertiary: #a8a29e;
-  --font-mono: 'SF Mono', 'Fira Code', monospace;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-}
-```
-
-Configure Tailwind to extend with Joy Factory brand colors:
-```js
-// tailwind.config.ts
-theme: {
-  extend: {
-    colors: {
-      brand: '#c8291c',
-      'brand-hover': '#a8221a',
-      share: '#534AB7',
-    }
-  }
-}
-```
+**`src/app/globals.css`** — see CURRENT STATUS section above for the actual file. Note: there is no `tailwind.config.ts`; brand colors are registered via `@theme` in globals.css (Tailwind v4 pattern).
 
 ---
 

@@ -9,28 +9,28 @@ interface StepNavProps {
 
 export default function StepNav({ steps, currentStep }: StepNavProps) {
   return (
-    <div className="flex gap-1.5 items-center flex-1 flex-wrap">
+    <div className="flex items-center gap-1 flex-1 min-w-0">
       {steps.map((label, i) => {
-        const done = i < currentStep;
+        const done   = i < currentStep;
         const active = i === currentStep;
         return (
-          <div key={i} className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5">
+          <div key={i} className="flex items-center gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <div
                 className={[
-                  'w-[26px] h-[26px] rounded-full border-[0.5px] flex items-center justify-center text-[10px] font-medium',
+                  'w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 transition-all',
                   done || active
-                    ? 'bg-brand border-brand text-white'
-                    : 'bg-white border-stone-300 text-stone-500',
+                    ? 'bg-brand text-white'
+                    : 'bg-white border border-stone-300 text-stone-400',
                   active ? 'shadow-[0_0_0_3px_rgba(200,41,28,0.15)]' : '',
                 ].join(' ')}
               >
-                {done ? <IconCheck size={10} /> : i + 1}
+                {done ? <IconCheck size={12} strokeWidth={2.5} /> : i + 1}
               </div>
               <span
                 className={[
-                  'text-[10px]',
-                  active ? 'text-stone-900 font-medium' : 'text-stone-400',
+                  'text-[11px] whitespace-nowrap hidden sm:block',
+                  active ? 'text-stone-800 font-medium' : done ? 'text-stone-500' : 'text-stone-400',
                 ].join(' ')}
               >
                 {label}
@@ -39,7 +39,7 @@ export default function StepNav({ steps, currentStep }: StepNavProps) {
             {i < steps.length - 1 && (
               <div
                 className={[
-                  'flex-1 h-[0.5px] min-w-[8px]',
+                  'h-px w-4 flex-shrink-0 mx-0.5',
                   done ? 'bg-brand' : 'bg-stone-200',
                 ].join(' ')}
               />

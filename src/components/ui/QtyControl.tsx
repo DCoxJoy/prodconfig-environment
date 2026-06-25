@@ -8,19 +8,19 @@ interface QtyControlProps {
 
 export default function QtyControl({ value, onChange, min = 0 }: QtyControlProps) {
   return (
-    <div className="flex items-center border-[0.5px] border-stone-300 rounded-[8px] overflow-hidden flex-shrink-0">
+    <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 bg-white">
       <button
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-[30px] h-[30px] border-none bg-stone-100 cursor-pointer text-[15px] text-stone-900 flex items-center justify-center hover:bg-white"
+        className="w-9 h-9 border-none bg-stone-50 hover:bg-stone-100 cursor-pointer text-lg text-stone-600 flex items-center justify-center leading-none transition-colors"
       >
         −
       </button>
-      <div className="w-[32px] text-center text-[13px] font-medium text-stone-900 border-l-[0.5px] border-r-[0.5px] border-stone-200 bg-white leading-[30px]">
+      <div className="w-9 text-center text-[13px] font-semibold text-stone-900 border-l border-r border-stone-200 bg-white leading-9">
         {value}
       </div>
       <button
         onClick={() => onChange(value + 1)}
-        className="w-[30px] h-[30px] border-none bg-stone-100 cursor-pointer text-[15px] text-stone-900 flex items-center justify-center hover:bg-white"
+        className="w-9 h-9 border-none bg-stone-50 hover:bg-stone-100 cursor-pointer text-lg text-stone-600 flex items-center justify-center leading-none transition-colors"
       >
         +
       </button>

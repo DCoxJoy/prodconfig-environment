@@ -14,10 +14,10 @@ export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
   const { state, dispatch } = useConfigurator();
   const { device, certified, features } = state;
 
-  const family = getDeviceFamily(device?.id ?? '');
-  const familyLabel = getDeviceFamilyLabel(family);
-  const allowedIds = getAllowedFeatures(family);
-  const filteredFeatures = ALL_FEATURES.filter(f => allowedIds.includes(f.id));
+  const family        = getDeviceFamily(device?.id ?? '');
+  const familyLabel   = getDeviceFamilyLabel(family);
+  const allowedIds    = getAllowedFeatures(family);
+  const filteredFeats = ALL_FEATURES.filter(f => allowedIds.includes(f.id));
 
   function pickCertified(val: 'yes' | 'no') {
     if (val === 'yes') {
@@ -33,106 +33,109 @@ export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
   }
 
   return (
-    <div className="p-3.5 pb-4">
-      {/* Certified gate */}
+    <div className="px-6 py-6">
+      {/* ── Certified gate ─────────────────────────────────────────────── */}
       {certified === null && (
-        <div className="pb-4">
-          <div className="text-[13px] font-medium text-stone-900 mb-2.5">
-            Do you need a certified rugged case (hazardous location rated)?
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="mb-2">
+          <p className="text-[14px] font-medium text-stone-800 mb-4">
+            Do you need a certified rugged case<br className="hidden sm:block" /> (hazardous location rated)?
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => pickCertified('yes')}
-              className="flex items-center gap-2.5 p-3 border-[0.5px] border-stone-200 rounded-[12px] cursor-pointer bg-white hover:bg-stone-50 text-left"
+              className="flex items-start gap-3 p-4 border border-stone-200 rounded-xl cursor-pointer bg-white hover:bg-stone-50 hover:border-stone-300 text-left transition-colors"
             >
-              <div className="w-[30px] h-[30px] rounded-[8px] bg-stone-100 border-[0.5px] border-stone-200 flex items-center justify-center text-stone-500 flex-shrink-0">
-                <IconAlertTriangle size={14} />
+              <div className="w-9 h-9 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-500 flex-shrink-0 mt-0.5">
+                <IconAlertTriangle size={16} />
               </div>
               <div>
-                <div className="text-[12px] font-medium text-stone-900">Yes, I need certified</div>
-                <div className="text-[10px] text-stone-400">Class I/II Division 2 hazardous locations</div>
+                <div className="text-[13px] font-semibold text-stone-900">Yes, I need certified</div>
+                <div className="text-[12px] text-stone-400 mt-0.5">Class I/II Division 2 hazardous locations</div>
               </div>
             </button>
             <button
               onClick={() => pickCertified('no')}
-              className="flex items-center gap-2.5 p-3 border-[0.5px] border-stone-200 rounded-[12px] cursor-pointer bg-white hover:bg-stone-50 text-left"
+              className="flex items-start gap-3 p-4 border border-stone-200 rounded-xl cursor-pointer bg-white hover:bg-stone-50 hover:border-stone-300 text-left transition-colors"
             >
-              <div className="w-[30px] h-[30px] rounded-[8px] bg-stone-100 border-[0.5px] border-stone-200 flex items-center justify-center text-stone-500 flex-shrink-0">
-                <IconCheck size={14} />
+              <div className="w-9 h-9 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-500 flex-shrink-0 mt-0.5">
+                <IconCheck size={16} />
               </div>
               <div>
-                <div className="text-[12px] font-medium text-stone-900">No, standard case is fine</div>
-                <div className="text-[10px] text-stone-400">Continue to feature selection</div>
+                <div className="text-[13px] font-semibold text-stone-900">No, standard case</div>
+                <div className="text-[12px] text-stone-400 mt-0.5">Continue to feature selection</div>
               </div>
             </button>
           </div>
         </div>
       )}
 
-      {/* Certified = yes note */}
+      {/* ── Certified = yes ─────────────────────────────────────────────── */}
       {certified === 'yes' && (
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mb-2.5">
-            <IconAlertTriangle size={11} style={{ color: '#c8291c' }} />
+          <div className="flex items-center gap-2 text-[12px] text-stone-500 mb-3">
+            <IconAlertTriangle size={13} className="text-brand" />
             Certified case selected.{' '}
-            <button onClick={resetCertified} className="text-brand font-medium cursor-pointer">Change</button>
+            <button onClick={resetCertified} className="text-brand font-semibold cursor-pointer">Change</button>
           </div>
-          <div className="text-[10px] text-stone-400 bg-stone-50 px-2.5 py-1.5 border-l-2 border-stone-300">
+          <div className="hint-strip">
             You will be routed directly to our sales team — certified cases require a compatibility check.
           </div>
         </div>
       )}
 
-      {/* Standard case — feature list */}
+      {/* ── Standard case — feature list ────────────────────────────────── */}
       {certified === 'no' && (
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mb-2.5">
-            <IconShieldCheck size={11} />
+          <div className="flex items-center gap-2 text-[12px] text-stone-500 mb-4">
+            <IconShieldCheck size={13} className="text-stone-400" />
             Standard case selected.{' '}
-            <button onClick={resetCertified} className="text-brand font-medium cursor-pointer">Change</button>
+            <button onClick={resetCertified} className="text-brand font-semibold cursor-pointer">Change</button>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#fff8f8] border-[0.5px] border-[#f09595] rounded-[8px] px-2.5 py-[7px] text-[10px] text-[#993C1D] mb-2.5">
-            <IconFilter size={12} />
-            Showing features available for <strong className="ml-0.5">{familyLabel}</strong> cases only
+          {/* Filter badge */}
+          <div className="flex items-center gap-2 bg-[#fff8f8] border border-[#f09595] rounded-lg px-3 py-2.5 text-[12px] text-[#993C1D] mb-4">
+            <IconFilter size={13} className="flex-shrink-0" />
+            <span>Showing features for <strong>{familyLabel}</strong> cases only</span>
           </div>
 
-          <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-[0.05em] mb-2">
+          <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-4">
             Select features that matter to you
           </div>
 
-          <div className="border-[0.5px] border-stone-200 rounded-[12px] overflow-hidden">
-            {filteredFeatures.map((feat, i) => {
+          <div className="item-list">
+            {filteredFeats.map((feat, i) => {
               const selected = features.includes(feat.id as FeatureId);
               return (
                 <div
                   key={feat.id}
                   onClick={() => dispatch({ type: 'TOGGLE_FEATURE', id: feat.id as FeatureId })}
                   className={[
-                    'flex items-center gap-2.5 px-3 py-1.5 cursor-pointer transition-colors',
-                    i > 0 ? 'border-t-[0.5px] border-stone-200' : '',
+                    'flex items-start gap-3 px-5 py-4 cursor-pointer transition-colors',
+                    i > 0 ? 'border-t border-stone-200' : '',
                     selected ? 'bg-[#fff8f8]' : 'bg-white hover:bg-stone-50',
                   ].join(' ')}
                 >
                   <div
                     className={[
-                      'w-4 h-4 rounded-[5px] flex-shrink-0 flex items-center justify-center',
+                      'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center mt-0.5',
                       selected
-                        ? 'bg-brand border-brand text-white'
-                        : 'border-[1.5px] border-stone-300',
+                        ? 'bg-brand text-white'
+                        : 'border-2 border-stone-300 bg-white',
                     ].join(' ')}
                   >
-                    {selected && <IconCheck size={9} />}
+                    {selected && <IconCheck size={11} strokeWidth={2.5} />}
                   </div>
-                  <span className="text-[12px] font-medium text-stone-900 flex-shrink-0 whitespace-nowrap">{feat.title}</span>
-                  <span className="text-[10px] text-stone-400 text-right flex-1 overflow-hidden text-ellipsis whitespace-nowrap ml-2.5">{feat.desc}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-stone-900 leading-tight">{feat.title}</div>
+                    <div className="text-[12px] text-stone-400 mt-0.5 leading-snug">{feat.desc}</div>
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="text-[10px] text-stone-400 bg-stone-50 px-2.5 py-1.5 border-l-2 border-stone-300 mt-2.5">
-            Features filtered to {familyLabel}-compatible options from the aXtion product line comparison chart.
+          <div className="hint-strip">
+            Features are filtered to {familyLabel}-compatible options from the aXtion product line.
           </div>
         </div>
       )}
