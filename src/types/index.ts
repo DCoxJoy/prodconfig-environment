@@ -62,6 +62,9 @@ export interface BundleItem {
   name: string;
   sku: string;
   unitPrice: number;
+  // Live BC IDs — set when item was fetched from BC catalog; used for cart creation
+  bcProductId?: number;
+  bcVariantId?: number;
 }
 
 export interface BundleOption {

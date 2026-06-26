@@ -904,3 +904,186 @@ Items explicitly out of scope for Phase 1 — do not implement:
 
 Leave `TODO Phase 2:` comments wherever Phase 1 uses a hardcoded stub that Phase 2 will replace.
 
+---
+
+## PHASE 2 — BIGCOMMERCE LIVE DATA + AI BUNDLE LOGIC
+
+### Current working state (do not break)
+- All 5 steps + Contact Sales fully navigable across mobile, tablet, desktop
+- All data is placeholder — catalog.ts hardcoded bundle arrays and SKU_TO_BC_IDS map
+- Review step (step 4) shows 2 bundle options, each with Case + Mount + Accessory
+- Quantity controls, 0-exclusion mechanic, AI Agent input UI all working
+- AI Agent currently uses client-side keyword matching in aiEdit.ts (no Claude API call)
+- Contact sales fallback path working for unmatched AI requests
+- Anthropic and BigCommerce credentials already set in Vercel environment variables
+
+---
+
+### Phase 2 Step 1 — BigCommerce REST API connection
+
+Create `src/lib/bigcommerce.ts` as the single BigCommerce API client:
+
+```typescript
+const BC_BASE = `https://api.bigcommerce.com/stores/${process.env.BIGCOMMERCE_STORE_HASH}/v3`;
+
+const BC_HEADERS = {
+  'X-Auth-Token': process.env.BIGCOMMERCE_ACCESS_TOKEN,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+```
+
+All BigCommerce fetches go through this file. Never call BigCommerce directly from components.
+
+---
+
+### Phase 2 Step 2 — Product fetching and custom field parsing
+
+Create `src/app/api/products/route.ts` as the internal Next.js API route for product data.
+
+BigCommerce REST endpoints to use:
+- `GET /catalog/products?keyword=&custom_fields=&include=custom_fields,images`
+- `GET /catalog/products/{id}/custom-fields`
+
+Custom fields that matter for bundle logic (from BigCommerce product admin):
+- `device_compatibility` — e.g. "iPad Pro 11" (M5)"
+- `device_type` — e.g. "iPad Pro"
+- `product_type` — e.g. "Cases", "Mounts", "Accessories"
+- `product_line` — e.g. "aXtion"
+- `product_status` — if value is "Request for Quote" → trigger contact sales fallback
+- `certifications` — e.g. "CID2,CIID2,IP68,MIL-STD-810H"
+- `features` — multi-value, e.g. "Waterproof", "Screen Protector", "Shoulder Strap Compatible"
+- `series` — e.g. "Extreme", "Bold", "Slim"
+- `industry` — multi-value, e.g. "Construction", "Energy & Utilities"
+- `material` — e.g. "PC,TPU"
+- `color` — e.g. "Black"
+
+Parse custom fields into a structured object on each product for easy AI reasoning.
+
+---
+
+### Phase 2 Step 3 — Replace hardcoded bundle recommendations
+
+Update `src/lib/catalog.ts`:
+- Replace `BP_TABLET` and `BP_IPHONE` hardcoded arrays with live BC API calls
+- Replace `SKU_TO_BC_IDS` map with real product_id and variant_id from BC catalog
+- Keep the TODO Phase 2 comments removed as each is replaced
+
+Bundle recommendation logic — use questionnaire selections to filter:
+- device_compatibility custom field → matches selected device name
+- product_type custom field → "Cases" for case slot, "Mounts" for mount slot, "Accessories" for accessory slot
+- features custom field → match against selected FeatureIds
+- product_status → exclude any product where value is "Request for Quote"
+
+Return top 2 case SKUs as the 2 bundle options. Each case SKU anchors its own bundle option. Mount and accessory are matched to each case by device_compatibility.
+
+---
+
+### Phase 2 Step 4 — Two-pass Claude AI logic at Review step
+
+Replace the client-side keyword matching in `aiEdit.ts` with a real two-pass server-side Claude API flow.
+
+**New API route: `src/app/api/ai-edit/route.ts`**
+
+This is the ONLY new Claude API call added in Phase 2. Keep the existing `/api/claude` reasoning paragraph call untouched.
+
+**Pass 1 — Intent parsing**
+
+POST body:
+```typescript
+{
+  userMessage: string;
+  activeBundleOption: {
+    items: BundleItem[];         // current Case + Mount + Accessory with SKUs
+    customFields: Record[];  // custom fields for each item
+  };
+  questionnaire: {
+    device: Device;
+    features: FeatureId[];
+    scenarios: Partial;
+  };
+}
+```
+
+Send to Claude (claude-sonnet-4-6). Ask Claude to respond with structured JSON only:
+```json
+{
+  "action": "swap" | "exclude" | "unknown",
+  "component": "Case" | "Mount" | "Accessory" | null,
+  "anchor_sku": "",
+  "constraints": {
+    "device_compatibility": "",
+    "product_type": "",
+    "keywords": [""],
+    "price_max": ,
+    "certifications": [""],
+    "features": [""]
+  },
+  "fallback": "contact_sales" | null
+}
+```
+
+The case SKU is always the anchor. Certifications and device_compatibility constraints are always inherited from the anchor case custom fields, not invented.
+
+If action is "unknown" or component is null → set fallback to "contact_sales" and return early without Pass 2.
+
+**Pass 2 — Candidate selection**
+
+Use the constraints from Pass 1 to query BigCommerce REST API for candidate products:
+- Filter by product_type matching the component
+- Filter by device_compatibility matching the anchor case
+- Filter by certifications if present
+- Apply price_max if specified
+- Exclude any product where product_status is "Request for Quote"
+
+Send candidates back to Claude (second call, claude-sonnet-4-6):
+```typescript
+{
+  candidates: Array;
+  }>;
+  originalBundle: BundleItem[];
+  userMessage: string;
+}
+```
+
+Claude responds with structured JSON:
+```json
+{
+  "selected_sku": "",
+  "selected_name": "",
+  "selected_price": ,
+  "confidence": "high" | "low",
+  "reason": "",
+  "fallback_triggered": false
+}
+```
+
+If no candidates found, or confidence is "low", or product_status is "Request for Quote" → set fallback_triggered: true → route to contact sales escalation path.
+
+**Route response to client:**
+```typescript
+{
+  matched: boolean;
+  updatedItem?: BundleItem;
+  reason?: string;
+  fallback?: boolean;
+}
+```
+
+Client-side in StepReview.tsx:
+- If matched: update the active bundle option's component with updatedItem, show reason as confirmation
+- If fallback: call goContactSales('escalation', userMessage) — existing mechanism unchanged
+
+---
+
+### Phase 2 critical rules (add to existing rules)
+
+8. **BigCommerce REST only — no GraphQL in Phase 2.** GraphQL can be evaluated in Phase 3 if REST hits limitations.
+
+9. **Case SKU is always the anchor for AI swaps.** Never allow the AI to swap the case without explicit user intent. When swapping Mount or Accessory, always inherit device_compatibility and certifications from the current case custom fields.
+
+10. **product_status "Request for Quote" is a hard fallback trigger.** If any candidate from BigCommerce has this value, exclude it from AI selection and trigger contact sales if it is the only option.
+
+11. **Both bundle options are independent.** AI swaps only affect the currently active bundle option tab. The other option remains unchanged.
+
+12. **Two-pass AI flow is server-side only.** The new `/api/ai-edit` route handles both Claude calls and the BigCommerce query. Nothing in this flow runs client-side.

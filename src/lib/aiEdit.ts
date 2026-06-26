@@ -92,7 +92,8 @@ export function interpretEditRequest(
   if (best && best.sku !== products[prodIdx].sku) {
     const updatedProducts = products.map((p, i) =>
       i === prodIdx
-        ? { ...p, name: best!.name, sku: best!.sku, unitPrice: best!.unitPrice }
+        // Clear BC IDs — swapped product is from the keyword catalog, not a live BC fetch
+        ? { ...p, name: best!.name, sku: best!.sku, unitPrice: best!.unitPrice, bcProductId: undefined, bcVariantId: undefined }
         : p
     );
     const updatedQtys = qtys.map((q, i) => (i === prodIdx ? 1 : q));

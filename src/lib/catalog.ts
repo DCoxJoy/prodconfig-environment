@@ -115,22 +115,26 @@ export const BP_TABLET: BundleOption[] = [
 ];
 
 // ─── SKU → BigCommerce product_id / variant_id Map ───────────────────────────
-// TODO Phase 2: replace with live BC catalog API lookup
+// Verified against live BC catalog via /api/products on 2026-06-26.
+// SKUs marked "not in BC catalog" need to be added to the store before cart works for them.
 
 export const SKU_TO_BC_IDS: Record<string, { product_id: number; variant_id: number }> = {
-  CPA330S:   { product_id: 1001, variant_id: 2001 },
-  CPX302:    { product_id: 1002, variant_id: 2002 },
-  CKX121:    { product_id: 1003, variant_id: 2003 },
-  CWA4122MP: { product_id: 1004, variant_id: 2004 },
-  CWM408MPA: { product_id: 1005, variant_id: 2005 },
-  CWA4152MH: { product_id: 1006, variant_id: 2006 },
-  CWM409MPA: { product_id: 1007, variant_id: 2007 },
-  CWX202:    { product_id: 1008, variant_id: 2008 },
-  HPA3224:   { product_id: 1009, variant_id: 2009 },
-  HTA6024:   { product_id: 1010, variant_id: 2010 },
-  CWM412MPA: { product_id: 1011, variant_id: 2011 },
-  CWM415MPA: { product_id: 1012, variant_id: 2012 },
-  CKX130:    { product_id: 1013, variant_id: 2013 },
+  // ── Verified live BC IDs ──────────────────────────────────────────────────
+  CPA330S:   { product_id: 2172, variant_id: 2137 }, // aXtion Edge (iPhone)
+  CPX302:    { product_id: 2174, variant_id: 2139 }, // Belt Clip Holster
+  CKX121:    { product_id: 1717, variant_id: 1682 }, // Screen Protector
+  CWA4122MP: { product_id: 2149, variant_id: 2114 }, // aXtion Bold (tablet)
+  CWM408MPA: { product_id: 1341, variant_id: 1306 }, // VESA 75 Mount Plate
+  CWA4152MH: { product_id: 2153, variant_id: 2118 }, // aXtion Slim
+  CWX202:    { product_id:  757, variant_id:  722 }, // Shoulder Strap II
+  HPA3224:   { product_id: 2171, variant_id: 2136 }, // aXtion Extreme (iPhone)
+  HTA6024:   { product_id: 2166, variant_id: 2131 }, // aXtion Extreme (tablet)
+
+  // ── Not yet in BC catalog — add products to store to enable cart ──────────
+  CWM409MPA: { product_id: 0, variant_id: 0 }, // Counter Mount Pro
+  CWM412MPA: { product_id: 0, variant_id: 0 }, // Vehicle Mount Pro
+  CWM415MPA: { product_id: 0, variant_id: 0 }, // Wall Arm Mount
+  CKX130:    { product_id: 0, variant_id: 0 }, // Hand Strap
 };
 
 // ─── AI Swap Catalogs ─────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useMemo } from 'react';
 import {
-  ConfiguratorState, Device, FeatureId, BundleItem, AppliedEdit,
+  ConfiguratorState, Device, FeatureId, BundleItem, BundleOption, AppliedEdit,
 } from '../types';
 import { BP_IPHONE, BP_TABLET } from './catalog';
 import { getDeviceFamily, isIphoneFamily, getAllowedFeatures } from './utils';
@@ -17,6 +17,7 @@ type Action =
   | { type: 'SET_SCENARIO'; key: string; value: string }
   | { type: 'SET_EDIT_NOTE'; note: string }
   | { type: 'ADD_APPLIED_EDIT'; edit: AppliedEdit }
+  | { type: 'SET_BUNDLE_OPTIONS'; options: BundleOption[] }
   | { type: 'SET_LIVE_PRODUCTS'; products: BundleItem[] }
   | { type: 'SET_QTYS'; qtys: number[] }
   | { type: 'SET_BUNDLE_OPTION'; index: number }
@@ -34,13 +35,15 @@ const initialState: ConfiguratorState = {
 };
 
 interface FullState extends ConfiguratorState {
-  liveProducts: BundleItem[] | null;
+  liveBundleOptions: BundleOption[] | null; // live BC bundle options; null = use hardcoded catalog
+  liveProducts: BundleItem[] | null;        // current bundle items ± AI swaps; null = use active option
   qtys: number[];
   selectedBundleOption: number;
 }
 
 const initialFullState: FullState = {
   ...initialState,
+  liveBundleOptions: null,
   liveProducts: null,
   qtys: [1, 1, 1],
   selectedBundleOption: 0,
@@ -59,6 +62,7 @@ function reducer(state: FullState, action: Action): FullState {
         scenarios: {},
         editNote: '',
         appliedEdits: [],
+        liveBundleOptions: null,
         liveProducts: null,
         qtys: [1, 1, 1],
         selectedBundleOption: 0,
@@ -97,19 +101,33 @@ function reducer(state: FullState, action: Action): FullState {
         editNote: '',
       };
 
+    case 'SET_BUNDLE_OPTIONS': {
+      const firstOption = action.options[0];
+      return {
+        ...state,
+        liveBundleOptions: action.options,
+        liveProducts: null,
+        qtys: firstOption?.items.map(() => 1) ?? [1, 1, 1],
+        selectedBundleOption: 0,
+      };
+    }
+
     case 'SET_LIVE_PRODUCTS':
       return { ...state, liveProducts: action.products };
 
     case 'SET_QTYS':
       return { ...state, qtys: action.qtys };
 
-    case 'SET_BUNDLE_OPTION':
+    case 'SET_BUNDLE_OPTION': {
+      const opts = state.liveBundleOptions;
+      const newOpt = opts?.[action.index];
       return {
         ...state,
         selectedBundleOption: action.index,
         liveProducts: null,
-        qtys: [1, 1, 1],
+        qtys: newOpt?.items.map(() => 1) ?? [1, 1, 1],
       };
+    }
 
     case 'RESET':
       return { ...initialFullState };
@@ -123,6 +141,7 @@ function reducer(state: FullState, action: Action): FullState {
 
 interface ContextValue {
   state: ConfiguratorState;
+  liveBundleOptions: BundleOption[] | null;
   liveProducts: BundleItem[];
   qtys: number[];
   selectedBundleOption: number;
@@ -135,12 +154,19 @@ export function ConfiguratorProvider({ children }: { children: React.ReactNode }
   const [fullState, dispatch] = useReducer(reducer, initialFullState);
 
   const liveProducts = useMemo(() => {
+    // Priority 1: products modified by AI swaps or explicit SET_LIVE_PRODUCTS
     if (fullState.liveProducts) return fullState.liveProducts;
+    // Priority 2: live BC bundle options fetched from /api/bundle
+    if (fullState.liveBundleOptions && fullState.liveBundleOptions.length > 0) {
+      const base = fullState.liveBundleOptions[fullState.selectedBundleOption] ?? fullState.liveBundleOptions[0];
+      return base.items.map(item => ({ ...item }));
+    }
+    // Priority 3: hardcoded catalog fallback (Phase 1 data)
     const family = getDeviceFamily(fullState.device?.id ?? '');
     const opts = isIphoneFamily(family) ? BP_IPHONE : BP_TABLET;
     const base = opts[fullState.selectedBundleOption] ?? opts[0];
     return base.items.map(item => ({ ...item }));
-  }, [fullState.liveProducts, fullState.device, fullState.selectedBundleOption]);
+  }, [fullState.liveProducts, fullState.liveBundleOptions, fullState.device, fullState.selectedBundleOption]);
 
   const value: ContextValue = {
     state: {
@@ -151,6 +177,7 @@ export function ConfiguratorProvider({ children }: { children: React.ReactNode }
       editNote: fullState.editNote,
       appliedEdits: fullState.appliedEdits,
     },
+    liveBundleOptions: fullState.liveBundleOptions,
     liveProducts,
     qtys: fullState.qtys,
     selectedBundleOption: fullState.selectedBundleOption,

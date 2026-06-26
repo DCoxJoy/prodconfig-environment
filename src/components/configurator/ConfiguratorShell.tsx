@@ -90,7 +90,7 @@ export default function ConfiguratorShell() {
     setAddingToCart(true);
     try {
       const items = liveProducts
-        .map((p, i) => ({ sku: p.sku, qty: qtys[i] }))
+        .map((p, i) => ({ sku: p.sku, qty: qtys[i], bcProductId: p.bcProductId, bcVariantId: p.bcVariantId }))
         .filter(item => item.qty > 0);
       const res  = await fetch('/api/cart', {
         method: 'POST',

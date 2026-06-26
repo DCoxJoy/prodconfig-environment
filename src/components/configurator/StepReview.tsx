@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IconSparkles, IconSend, IconCheck, IconLoader2 } from '@tabler/icons-react';
 import { BP_IPHONE, BP_TABLET } from '../../lib/catalog';
 import { getDeviceFamily, isIphoneFamily } from '../../lib/utils';
@@ -8,6 +8,7 @@ import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { interpretEditRequest } from '../../lib/aiEdit';
 import QtyControl from '../ui/QtyControl';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface StepReviewProps {
   onConfirm: () => void;
@@ -15,15 +16,55 @@ interface StepReviewProps {
 }
 
 export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
-  const { state, liveProducts, qtys, selectedBundleOption, dispatch } = useConfigurator();
-  const { device, editNote, appliedEdits } = state;
+  const { state, liveProducts, liveBundleOptions, qtys, selectedBundleOption, dispatch } = useConfigurator();
+  const { device, features, scenarios, editNote, appliedEdits } = state;
+
+  const family   = getDeviceFamily(device?.id ?? '');
+  const isIphone = isIphoneFamily(family);
+
+  // bundleLoading: true until BC bundle options arrive (or if already loaded, start false)
+  const [bundleLoading, setBundleLoading] = useState(liveBundleOptions === null);
   const [thinking, setThinking] = useState(false);
 
-  const family        = getDeviceFamily(device?.id ?? '');
-  const isIphone      = isIphoneFamily(family);
-  const bundleOptions = isIphone ? BP_IPHONE : BP_TABLET;
+  // Fetch live bundle from BC on first render. If liveBundleOptions is already set
+  // (e.g. user navigated back and forward), skip the fetch.
+  useEffect(() => {
+    if (liveBundleOptions !== null) {
+      setBundleLoading(false);
+      return;
+    }
+    if (!device) {
+      setBundleLoading(false);
+      return;
+    }
 
-  const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
+    let cancelled = false;
+    setBundleLoading(true);
+
+    fetch('/api/bundle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.options && data.options.length > 0) {
+          dispatch({ type: 'SET_BUNDLE_OPTIONS', options: data.options });
+        } else {
+          console.warn('[StepReview] No BC bundle options returned — falling back to catalog:', data);
+        }
+      })
+      .catch(err => console.error('[StepReview] Bundle fetch failed:', err))
+      .finally(() => { if (!cancelled) setBundleLoading(false); });
+
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bundle option tabs come from live BC data when available, else from hardcoded catalog
+  const bundleOptions = liveBundleOptions ?? (isIphone ? BP_IPHONE : BP_TABLET);
+
+  const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * (qtys[i] ?? 0), 0);
   const totalQty = qtys.reduce((a, b) => a + b, 0);
 
   const aiHint = isIphone
@@ -79,55 +120,68 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
         </div>
       )}
 
-      {/* ── Section label ──────────────────────────────────────────────── */}
-      <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3">
-        Bundle items — adjust quantities as needed
-      </div>
-
-      {/* ── Item list ──────────────────────────────────────────────────── */}
-      {liveProducts.map((p, i) => {
-        const isZero = qtys[i] === 0;
-        const Icon   = getTablerIcon(p.icon);
-        return (
-          <div
-            key={i}
-            className={[
-              'flex items-center gap-3.5 py-5 border-b border-stone-200 last:border-b-0 transition-opacity',
-              isZero ? 'opacity-40' : '',
-            ].join(' ')}
-          >
-            <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-              <Icon size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-              <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
-              <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
-              <div className="text-[12px] text-stone-500 mt-0.5">
-                {isZero
-                  ? <span className="text-stone-400 italic">Excluded from cart</span>
-                  : `$${p.unitPrice.toFixed(2)} each`
-                }
-              </div>
-            </div>
-            <QtyControl value={qtys[i]} onChange={v => changeQty(i, v)} />
-            <div className={['text-[14px] font-semibold min-w-[52px] text-right flex-shrink-0', isZero ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
-              ${(p.unitPrice * qtys[i]).toFixed(2)}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* ── Bundle total ───────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center pt-5 border-t border-stone-200 mt-1 mb-6">
-        <div>
-          <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
-          <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing</div>
+      {/* ── Loading state while BC bundle fetches ──────────────────────── */}
+      {bundleLoading ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-stone-400">
+          <LoadingSpinner size={24} />
+          <div className="text-[13px]">Building your bundle from live catalog…</div>
         </div>
-        <div className="text-[24px] font-semibold text-stone-900">${total.toFixed(2)}</div>
-      </div>
+      ) : (
+        <>
+          {/* ── Section label ────────────────────────────────────────────── */}
+          <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-3">
+            Bundle items — adjust quantities as needed
+          </div>
 
-      {/* ── AI Agent box ───────────────────────────────────────────────── */}
+          {/* ── Item list ────────────────────────────────────────────────── */}
+          {liveProducts.map((p, i) => {
+            const isZero = (qtys[i] ?? 0) === 0;
+            const Icon   = getTablerIcon(p.icon);
+            return (
+              <div
+                key={i}
+                className={[
+                  'flex items-center gap-3.5 py-5 border-b border-stone-200 last:border-b-0 transition-opacity',
+                  isZero ? 'opacity-40' : '',
+                ].join(' ')}
+              >
+                <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                  <Icon size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
+                  <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                  <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
+                  <div className="text-[12px] text-stone-500 mt-0.5">
+                    {isZero
+                      ? <span className="text-stone-400 italic">Excluded from cart</span>
+                      : `$${p.unitPrice.toFixed(2)} each`
+                    }
+                  </div>
+                </div>
+                <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
+                <div className={[
+                  'text-[14px] font-semibold min-w-[52px] text-right flex-shrink-0',
+                  isZero ? 'text-stone-300' : 'text-stone-900',
+                ].join(' ')}>
+                  {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* ── Bundle total ──────────────────────────────────────────────── */}
+          <div className="flex justify-between items-center pt-5 border-t border-stone-200 mt-1 mb-6">
+            <div>
+              <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
+              <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing</div>
+            </div>
+            <div className="text-[24px] font-semibold text-stone-900">${total.toFixed(2)}</div>
+          </div>
+        </>
+      )}
+
+      {/* ── AI Agent box ─────────────────────────────────────────────────── */}
       <div className="border border-brand rounded-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 bg-brand">
           <IconSparkles size={15} className="text-white flex-shrink-0" />
@@ -139,17 +193,17 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
             value={editNote}
             onChange={e => dispatch({ type: 'SET_EDIT_NOTE', note: e.target.value })}
             placeholder="Type your request here..."
-            disabled={thinking}
+            disabled={thinking || bundleLoading}
             rows={2}
             className="w-full border border-stone-200 rounded-xl px-4 py-3 text-[13px] text-stone-900 bg-white resize-none leading-relaxed focus:outline-none focus:border-brand font-sans placeholder:text-stone-400"
           />
           <div className="flex justify-end mt-2.5">
             <button
               onClick={applyAiEdit}
-              disabled={thinking || !editNote.trim()}
+              disabled={thinking || !editNote.trim() || bundleLoading}
               className={[
                 'flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-colors',
-                thinking || !editNote.trim()
+                thinking || !editNote.trim() || bundleLoading
                   ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200'
                   : 'bg-brand text-white cursor-pointer',
               ].join(' ')}
@@ -174,10 +228,16 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
         </div>
       </div>
 
-      {/* ── Confirm button ─────────────────────────────────────────────── */}
+      {/* ── Confirm button ─────────────────────────────────────────────────── */}
       <button
         onClick={onConfirm}
-        className="w-full bg-brand text-white text-[14px] font-semibold py-3.5 rounded-xl border-none cursor-pointer mt-5 flex items-center justify-center gap-2 transition-colors hover:bg-brand-hover"
+        disabled={bundleLoading}
+        className={[
+          'w-full text-[14px] font-semibold py-3.5 rounded-xl border-none cursor-pointer mt-5 flex items-center justify-center gap-2 transition-colors',
+          bundleLoading
+            ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
+            : 'bg-brand text-white hover:bg-brand-hover',
+        ].join(' ')}
       >
         <IconCheck size={15} />
         Confirm and see bundle
