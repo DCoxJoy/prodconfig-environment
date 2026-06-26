@@ -1,9 +1,12 @@
 // POST /api/bundle
 // Builds live bundle options from BC catalog based on selected device, features, and scenarios.
 // Returns up to 2 BundleOption[] — one per compatible case found in BC.
+// Enrichment data (src/lib/enrichment.ts) drives scoring; Claude inference fills gaps for unknown SKUs.
 
 import { NextResponse } from 'next/server';
 import { getAllProducts, getFirstVariantIds, BcProductFull } from '../../../lib/bigcommerce';
+import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
+import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
 import { BundleItem, BundleOption, FeatureId, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
@@ -30,15 +33,21 @@ function getDeviceCompatList(cf: CfMap): string[] {
 }
 
 // ─── Mount scoring ────────────────────────────────────────────────────────────
+// Enrichment data preferred; keyword fallback for unrecognized SKUs.
 
 const MOUNT_SURFACE_KEYWORDS: Record<string, string[]> = {
-  vehicle:  ['c-clamp', 'seat bolt', 'wheelchair'],
-  wall:     ['on-wall', 'wall |', '| wall', 'counter'],
-  desk:     ['desk stand'],
-  pole:     ['tripod', 'mic stand'],
+  vehicle: ['c-clamp', 'seat bolt', 'wheelchair', 'forklift'],
+  wall:    ['on-wall', 'wall |', '| wall', 'counter', 'kiosk'],
+  desk:    ['desk stand', 'tabletop'],
+  pole:    ['tripod', 'mic stand', 'pole'],
 };
 
-function scoreMount(name: string, mountSurface: string): number {
+function scoreMount(name: string, sku: string, mountSurface: string): number {
+  const enrichment = getEnrichment(sku);
+  if (enrichment.mount_surface !== undefined) {
+    return enrichment.mount_surface === mountSurface ? 10 : 0;
+  }
+  // Keyword fallback
   const lower = name.toLowerCase();
   const keywords = MOUNT_SURFACE_KEYWORDS[mountSurface] ?? [];
   return keywords.reduce((n, k) => n + (lower.includes(k) ? 1 : 0), 0);
@@ -51,9 +60,16 @@ const FEATURE_TO_ACCESSORY_KEYWORDS: Partial<Record<FeatureId, string[]>> = {
   hand_strap:       ['grip hand strap', 'hand strap'],
   screen_protector: ['screen protector'],
   kensington_lock:  ['lockdown', 'cable lock'],
+  magsafe:          ['magsafe'],
 };
 
-function scoreAccessory(name: string, features: FeatureId[]): number {
+function scoreAccessory(name: string, sku: string, features: FeatureId[]): number {
+  const enrichment = getEnrichment(sku);
+  if (enrichment.features !== undefined) {
+    // Direct enrichment match: count how many selected features this accessory covers
+    return enrichment.features.filter(f => features.includes(f)).length;
+  }
+  // Keyword fallback
   const lower = name.toLowerCase();
   let score = 0;
   for (const feat of features) {
@@ -63,12 +79,43 @@ function scoreAccessory(name: string, features: FeatureId[]): number {
   return score;
 }
 
-function iconForAccessory(name: string): string {
+// ─── Case scoring ─────────────────────────────────────────────────────────────
+// Higher score = better match for this user's feature preferences.
+
+function scoreCase(sku: string, features: FeatureId[]): number {
+  const enrichment = getEnrichment(sku);
+  let score = 0;
+  // Feature coverage score
+  if (enrichment.features?.length) {
+    score += enrichment.features.filter(f => features.includes(f)).length * 2;
+  }
+  // Ruggedness bias: if user selected protection features, prefer Extreme/Bold
+  const wantsRugged = features.some(f => ['ip_rating', 'mil_rating', 'chemical_resistant', 'thermo_defend'].includes(f));
+  const wantsLight  = features.some(f => ['kick_stand', 'pencil_holder'].includes(f));
+  const series = enrichment.series;
+  if (wantsRugged && (series === 'Extreme' || series === 'Bold')) score += 3;
+  if (wantsLight  && series === 'Slim') score += 2;
+  // bundle_priority as tiebreaker (lower priority number = higher rank)
+  if (enrichment.bundle_priority) score += (10 - enrichment.bundle_priority);
+  return score;
+}
+
+// ─── Accessory icon ────────────────────────────────────────────────────────────
+
+function iconForAccessory(name: string, sku: string): string {
+  const enrichment = getEnrichment(sku);
+  const feat = enrichment.features?.[0];
+  if (feat === 'shoulder_strap') return 'briefcase';
+  if (feat === 'hand_strap')     return 'hand-stop';
+  if (feat === 'screen_protector') return 'device-tablet';
+  if (feat === 'kensington_lock')  return 'lock';
+  if (feat === 'magsafe')          return 'magnet';
+  // Keyword fallback
   const lower = name.toLowerCase();
   if (lower.includes('shoulder')) return 'briefcase';
   if (lower.includes('hand strap') || lower.includes('grip')) return 'hand-stop';
   if (lower.includes('screen')) return 'device-tablet';
-  if (lower.includes('lock')) return 'lock';
+  if (lower.includes('lock'))   return 'lock';
   return 'tool';
 }
 
@@ -100,8 +147,7 @@ export async function POST(request: Request) {
     // ── Cases: device-specific ─────────────────────────────────────────────
     const cases = active
       .filter(p => p.cf.product_type === 'Cases')
-      .filter(p => getDeviceCompatList(p.cf).includes(deviceName))
-      .slice(0, 2); // top 2 → up to 2 bundle options
+      .filter(p => getDeviceCompatList(p.cf).includes(deviceName));
 
     if (cases.length === 0) {
       console.warn(`[/api/bundle] No BC cases found for device: "${deviceName}"`);
@@ -109,53 +155,80 @@ export async function POST(request: Request) {
     }
 
     // ── Mounts: Universal, scored by scenario ──────────────────────────────
+    const mounts = active.filter(p => p.cf.product_type === 'Mounts');
     const mountSurface = (scenarios as TabletScenarios).mount_surface;
-    let selectedMount: (typeof products)[0] | null = null;
 
+    // ── Accessories: Universal, scored by selected features ────────────────
+    const accessories = active.filter(p => p.cf.product_type === 'Accessories');
+
+    // ── Infer enrichment for any SKUs not yet in the static map or cache ───
+    const allRelevant = [...cases, ...mounts, ...accessories];
+    const unknownSkus = allRelevant.filter(p => !hasEnrichment(p.sku));
+    if (unknownSkus.length > 0) {
+      console.log(`[/api/bundle] ${unknownSkus.length} SKUs without enrichment — calling Claude...`);
+      const forInference: ProductForEnrichment[] = unknownSkus.map(p => ({
+        sku: p.sku,
+        name: p.name,
+        product_type: p.cf.product_type as string,
+        series: p.cf.series as string | undefined,
+        certifications: p.cf.certifications as string | undefined,
+      }));
+      await inferEnrichmentBatch(forInference);
+      // Results are now in runtimeEnrichmentCache, getEnrichment() picks them up automatically
+    }
+
+    // ── Select best mount ──────────────────────────────────────────────────
+    let selectedMount: (typeof products)[0] | null = null;
     if (!isIphone && mountSurface && mountSurface !== 'na') {
-      const scored = active
-        .filter(p => p.cf.product_type === 'Mounts')
-        .map(p => ({ p, score: scoreMount(p.name, mountSurface) }))
+      const scored = mounts
+        .map(p => ({ p, score: scoreMount(p.name, p.sku, mountSurface) }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score);
       selectedMount = scored[0]?.p ?? null;
     }
 
-    // ── Accessories: Universal, scored by selected features ────────────────
-    const accessoryPool = active.filter(p => p.cf.product_type === 'Accessories');
+    // ── Select best accessory ──────────────────────────────────────────────
+    const scoredAcc = accessories
+      .map(p => ({ p, score: scoreAccessory(p.name, p.sku, features) }))
+      .sort((a, b) => b.score - a.score);
 
-    // For iPhone, also consider carry_style for accessory selection
-    const effectiveFeatures: FeatureId[] = [...features];
-    if (isIphone && (scenarios as { carry_style?: string }).carry_style === 'holster') {
-      // prefer holster/belt clip — doesn't map to a FeatureId, handled by name keyword below
+    let selectedAccessory: (typeof products)[0] | null = null;
+    if (scoredAcc[0]?.score > 0) {
+      selectedAccessory = scoredAcc[0].p;
+    } else {
+      // No feature-matched accessory — fall back by priority: screen protector, shoulder strap, first in pool
+      const FALLBACK_KEYWORDS = ['screen protector', 'shoulder strap', 'hand strap'];
+      for (const kw of FALLBACK_KEYWORDS) {
+        const found = accessories.find(p => p.name.toLowerCase().includes(kw));
+        if (found) { selectedAccessory = found; break; }
+      }
+      if (!selectedAccessory && accessories.length > 0) selectedAccessory = accessories[0];
     }
 
-    const scoredAcc = accessoryPool
-      .map(p => ({ p, score: scoreAccessory(p.name, effectiveFeatures) }))
-      .filter(x => x.score > 0)
-      .sort((a, b) => b.score - a.score);
-    const selectedAccessory = scoredAcc[0]?.p ?? null;
+    // ── Sort cases by enrichment score ─────────────────────────────────────
+    const sortedCases = [...cases].sort((a, b) => scoreCase(b.sku, features) - scoreCase(a.sku, features));
+    const topCases = sortedCases.slice(0, 2);
 
     // ── Collect product IDs we need variant IDs for ────────────────────────
     const selectedIds = [
-      ...cases.map(c => c.id),
-      ...(selectedMount ? [selectedMount.id] : []),
+      ...topCases.map(c => c.id),
+      ...(selectedMount     ? [selectedMount.id]     : []),
       ...(selectedAccessory ? [selectedAccessory.id] : []),
     ];
-    const uniqueIds = [...new Set(selectedIds)];
-    const variantIds = await getFirstVariantIds(uniqueIds);
+    const variantIds = await getFirstVariantIds([...new Set(selectedIds)]);
 
-    console.log(`[/api/bundle] Built for "${deviceName}": ${cases.length} case(s), mount=${selectedMount?.sku ?? 'none'}, accessory=${selectedAccessory?.sku ?? 'none'}`);
+    console.log(`[/api/bundle] Built for "${deviceName}": ${topCases.length} case(s), mount=${selectedMount?.sku ?? 'none'}, accessory=${selectedAccessory?.sku ?? 'none'} ("${selectedAccessory?.name ?? ''}")`);
+    console.log(`[/api/bundle] Features sent:`, features);
 
     // ── Build BundleOption[] — one per case ────────────────────────────────
-    const options: BundleOption[] = cases.map(caseProduct => {
+    const options: BundleOption[] = topCases.map(caseProduct => {
       const items: BundleItem[] = [
         {
-          type:       'Case',
-          icon:       'shield',
-          name:       caseProduct.name,
-          sku:        caseProduct.sku,
-          unitPrice:  caseProduct.price,
+          type:        'Case',
+          icon:        'shield',
+          name:        caseProduct.name,
+          sku:         caseProduct.sku,
+          unitPrice:   caseProduct.price,
           bcProductId: caseProduct.id,
           bcVariantId: variantIds[caseProduct.id],
         },
@@ -163,11 +236,11 @@ export async function POST(request: Request) {
 
       if (selectedMount) {
         items.push({
-          type:       'Mount',
-          icon:       'layout-sidebar',
-          name:       selectedMount.name,
-          sku:        selectedMount.sku,
-          unitPrice:  selectedMount.price,
+          type:        'Mount',
+          icon:        'layout-sidebar',
+          name:        selectedMount.name,
+          sku:         selectedMount.sku,
+          unitPrice:   selectedMount.price,
           bcProductId: selectedMount.id,
           bcVariantId: variantIds[selectedMount.id],
         });
@@ -175,11 +248,11 @@ export async function POST(request: Request) {
 
       if (selectedAccessory) {
         items.push({
-          type:       'Accessory',
-          icon:       iconForAccessory(selectedAccessory.name),
-          name:       selectedAccessory.name,
-          sku:        selectedAccessory.sku,
-          unitPrice:  selectedAccessory.price,
+          type:        'Accessory',
+          icon:        iconForAccessory(selectedAccessory.name, selectedAccessory.sku),
+          name:        selectedAccessory.name,
+          sku:         selectedAccessory.sku,
+          unitPrice:   selectedAccessory.price,
           bcProductId: selectedAccessory.id,
           bcVariantId: variantIds[selectedAccessory.id],
         });

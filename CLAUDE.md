@@ -9,16 +9,35 @@
 
 ---
 
-## CURRENT STATUS — PHASE 1 COMPLETE
+## CURRENT STATUS — PHASE 2 BUNDLE LOGIC WORKING
 
-**All 27 source files are built, type-checked, and running.** Do not delete or rebuild from scratch. Pick up from here.
+**Phase 1 complete + Phase 2 Steps 1–3 implemented.** All 5 steps are navigable and live BC product data drives the bundle. Do not delete or rebuild from scratch.
 
 ### What's done
 - All 5 steps + Contact Sales step fully implemented and navigable
-- Comprehensive UI overhaul: consistent spacing scale, visible borders, proper typography hierarchy
 - Real Claude API call wired in (`/api/claude` → StepBundle "Why this bundle fits" section)
-- HubSpot and BigCommerce cart API routes implemented (Phase 1 hardcoded data)
+- HubSpot and BigCommerce cart API routes implemented
 - embed.js widget in `/public/embed.js` for drop-in iframe embedding on external sites
+- **Phase 2: Live BC bundle logic fully working** — `/api/bundle` fetches all BC products, filters cases by `device_compatibility`, scores Universal mounts against `mount_surface` scenario answer, scores accessories against selected features, returns up to 2 `BundleOption[]` with real BC product IDs baked in
+- **Phase 2: Accessory fallback** — if no feature-specific accessory matches, defaults to screen protector → shoulder strap → first in pool
+- **Phase 2: BC IDs flow end-to-end** — `BundleItem` carries `bcProductId`/`bcVariantId` from BC; cart route uses these directly without needing `SKU_TO_BC_IDS`
+- **Phase 2: 5-min cache** — all BC API calls use `next: { revalidate: 300 }` to avoid hammering the API on every page load
+
+### Phase 2 files added / modified
+| File | Status |
+|------|--------|
+| `src/lib/bigcommerce.ts` | New — BC API client, `getAllProducts()`, `getFirstVariantIds()`, `getProductsByIds()` |
+| `src/app/api/bundle/route.ts` | New — live bundle builder from BC catalog |
+| `src/app/api/prices/route.ts` | New — SKU→price lookup (fallback, mostly superseded by bundle route) |
+| `src/app/api/products/route.ts` | New — raw product list endpoint |
+| `src/types/index.ts` | Modified — `BundleItem` gains `bcProductId?`, `bcVariantId?` |
+| `src/lib/ConfiguratorContext.tsx` | Modified — `liveBundleOptions` state, `SET_BUNDLE_OPTIONS` action, 3-priority `liveProducts` useMemo |
+| `src/components/configurator/StepReview.tsx` | Modified — fetches `/api/bundle` on mount, shows loading spinner |
+| `src/app/api/cart/route.ts` | Modified — prefers live BC IDs over `SKU_TO_BC_IDS` map |
+| `src/lib/aiEdit.ts` | Modified — clears `bcProductId`/`bcVariantId` on AI swap |
+
+### Phase 2 still to do
+- Phase 2 Step 4: Two-pass Claude AI logic at Review step (`/api/ai-edit` route) — currently still using client-side keyword matching in `aiEdit.ts`
 
 ### Dev server
 Requires Node v20 via nvm:
@@ -1087,3 +1106,112 @@ Client-side in StepReview.tsx:
 11. **Both bundle options are independent.** AI swaps only affect the currently active bundle option tab. The other option remains unchanged.
 
 12. **Two-pass AI flow is server-side only.** The new `/api/ai-edit` route handles both Claude calls and the BigCommerce query. Nothing in this flow runs client-side.
+
+---
+
+## BIGCOMMERCE CATALOG DATA QUALITY RECOMMENDATIONS
+
+The bundle logic in `/api/bundle/route.ts` is only as accurate as the custom field data in BC. The recommendations below are prioritized — implement them in order for the biggest improvement to matching quality.
+
+### Priority 1 — Mount surface type (eliminates keyword fragility)
+
+**Problem:** Mount selection currently keyword-scores against product names (e.g., looks for "on-wall" or "c-clamp" in the name). If a product is renamed or a new mount is added, matching breaks silently.
+
+**Fix:** Add a `mount_surface` custom field to every Mount product with one of these values:
+```
+wall | vehicle | desk | pole | na
+```
+These values map directly to the `mount_surface` question in the Environment step. The bundle route can then do a direct field match instead of name keyword scoring.
+
+Example: "MagConnect On-Wall Counter Mount" → `mount_surface = wall`
+
+### Priority 2 — Features on Accessories (direct feature→accessory mapping)
+
+**Problem:** Accessory selection keyword-scores against product names (e.g., looks for "shoulder strap" in the name). Works now but is fragile.
+
+**Fix:** Add a `features` multi-value custom field to every Accessory product. Use the same vocabulary as the configurator's `FeatureId` values:
+```
+shoulder_strap | hand_strap | screen_protector | kensington_lock | magsafe
+```
+Multiple values = multiple custom field entries with the same `features` key (BC handles this correctly). The bundle route can then match `features` selected by the user directly to accessories that carry that feature value.
+
+Example: "Universal Shoulder Strap II" → `features = shoulder_strap`
+
+### Priority 3 — Series / ranking on Cases (feature-driven case ranking)
+
+**Problem:** When multiple cases match a device, the bundle returns whichever two BC sends first — effectively random. Users who prioritize ruggedness might get a slim case as Option 1.
+
+**Fix:** Add two custom fields to Case products:
+
+`series` — the product line tier:
+```
+Extreme | Bold | Slim | Edge
+```
+
+`bundle_priority` — integer (1 = show first). This lets the catalog team control which case leads each bundle option without touching code.
+
+With `series`, the bundle route can sort cases so that ruggedness-matching options (e.g., user selected `ip_rating` + `mil_rating` → prefer Extreme/Bold over Slim) appear first.
+
+### Priority 4 — Features on Cases (ruggedness matching)
+
+**Problem:** The configurator collects feature preferences (IP68, MIL-STD-810H, shoulder strap compatible, etc.) but the bundle logic ignores them when choosing which cases to show. All cases that match the device are treated equally.
+
+**Fix:** Add a `features` multi-value custom field to Case products listing what capabilities the case provides or is compatible with:
+```
+ip_rating | mil_rating | screen_protector | reinforced_corners | chemical_resistant | thermo_defend | vesa_compatible | magconnect | pencil_holder | asset_tag | kensington_lock
+```
+
+The bundle route can then score cases against the user's selected features, ranking the best-matching case as Option 1.
+
+### Priority 5 — Verified `device_compatibility` exact match
+
+**Problem:** The bundle route filters cases with `.includes(deviceName)` against a comma-separated `device_compatibility` field. If BC stores "iPad Pro 11-inch (M5)" but the configurator sends "iPad Pro 11\" (M5)", zero cases match and the bundle falls back to hardcoded data silently.
+
+**Fix:** Verify that every case in BC has a `device_compatibility` value where at least one comma-separated entry exactly matches the device names in `catalog.ts` `DEVICE_GROUPS`. The full list of device names the configurator can send:
+
+```
+iPad Pro 11" (M5)
+iPad Pro 13" (M5)
+iPad Pro 11" (M4)
+iPad Air 11" (M4)
+iPad Air 13" (M4)
+iPad Air 11" (M3)
+iPad 11" (A16)
+iPad 10.9" (10th Gen)
+iPad 9th Gen
+iPad mini (A17 Pro)
+iPad mini 6
+iPhone 17
+iPhone 16
+iPhone 15
+Surface Pro 13" (12th Ed)
+Surface Pro 13" (11th Ed)
+Surface Pro 10
+Surface Pro 10 (5G)
+Surface Pro 9
+Surface Pro 12"
+Surface Go 4
+Samsung Galaxy Tab S9
+```
+
+Run a quick test: visit `/api/bundle` with POST body `{"deviceName":"iPad Pro 11\" (M5)","isIphone":false,"features":[],"scenarios":{}}` and check the server log line `[/api/bundle] Built for ...` — if it says `0 case(s)`, there's a name mismatch.
+
+### Priority 6 — `product_status` consistency
+
+**Problem:** Products tagged `product_status = "Request for Quote"` are excluded from bundle logic and should trigger the Contact Sales path. This only works if the field is set consistently.
+
+**Fix:** Audit BC products and confirm all RFQ products (discontinued, made-to-order, certified SKUs that require a quote) have `product_status = Request for Quote` set exactly. Any product missing this tag may appear in bundles incorrectly.
+
+---
+
+### Summary table
+
+| Custom Field | Applies To | Values | Impact |
+|---|---|---|---|
+| `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Eliminates mount keyword fragility |
+| `features` | Accessories | `shoulder_strap\|hand_strap\|screen_protector\|...` | Direct feature→accessory mapping |
+| `series` | Cases | `Extreme\|Bold\|Slim\|Edge` | Enables feature-driven case ranking |
+| `bundle_priority` | Cases | `1\|2\|3` | Controls Option 1 vs Option 2 ordering |
+| `features` | Cases | same FeatureId vocabulary | Scores cases against user preferences |
+| `device_compatibility` | Cases | exact device name strings | Must match configurator device list exactly |
+| `product_status` | All | `Request for Quote` | Triggers contact sales path for RFQ items |
