@@ -24,6 +24,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
 
   // bundleLoading: true until BC bundle options arrive (or if already loaded, start false)
   const [bundleLoading, setBundleLoading] = useState(liveBundleOptions === null);
+  const [noProductsFound, setNoProductsFound] = useState(false);
   const [thinking, setThinking] = useState(false);
 
   // Fetch live bundle from BC on first render. If liveBundleOptions is already set
@@ -52,7 +53,8 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
         if (data.options && data.options.length > 0) {
           dispatch({ type: 'SET_BUNDLE_OPTIONS', options: data.options });
         } else {
-          console.warn('[StepReview] No BC bundle options returned — falling back to catalog:', data);
+          console.warn('[StepReview] No BC products found for device:', device?.name, data);
+          setNoProductsFound(true);
         }
       })
       .catch(err => console.error('[StepReview] Bundle fetch failed:', err))
@@ -125,6 +127,19 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-stone-400">
           <LoadingSpinner size={24} />
           <div className="text-[13px]">Building your bundle from live catalog…</div>
+        </div>
+      ) : noProductsFound ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+          <div className="text-[15px] font-semibold text-stone-700">No products found for {device?.name}</div>
+          <div className="text-[13px] text-stone-400 max-w-[300px] leading-relaxed">
+            We don&rsquo;t have a catalog match for this device yet. Our sales team can build a custom recommendation.
+          </div>
+          <button
+            onClick={() => onEscalate(`No BC products found for ${device?.name ?? 'selected device'}`)}
+            className="mt-2 bg-brand text-white rounded-xl px-5 py-2.5 text-[13px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors"
+          >
+            Contact Sales for a recommendation
+          </button>
         </div>
       ) : (
         <>

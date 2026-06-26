@@ -36,7 +36,7 @@ function formatAsTypescript(enrichment: Record<string, ProductEnrichment>): stri
     if (e.features?.length) parts.push(`features: [${e.features.map(f => `'${f}'`).join(', ')}]`);
     if (e.series) parts.push(`series: '${e.series}'`);
     if (e.bundle_priority !== undefined) parts.push(`bundle_priority: ${e.bundle_priority}`);
-    if (parts.length === 0) return null; // nothing meaningful inferred
+    // Always include entry (even empty {}) so hasEnrichment() returns true for all known SKUs
     return `  '${sku}': { ${parts.join(', ')} },`;
   }).filter(Boolean);
 
@@ -70,13 +70,19 @@ export async function POST() {
 
     console.log(`[/api/admin/enrich] ${enrichable.length} products to enrich (${allProducts.length} total in BC)`);
 
+    // Seed all enrichable SKUs with {} first so hasEnrichment() returns true for
+    // every known SKU — even those Claude infers nothing meaningful for.
+    // This prevents repeated runtime Claude calls for known-but-unenriched products.
+    const allInferred: Record<string, ProductEnrichment> = {};
+    for (const p of enrichable) allInferred[p.sku] = {};
+
     // Claude processes 20 products per call — stays comfortably within token limits
     const batches = chunkArray(enrichable, 20);
-    const allInferred: Record<string, ProductEnrichment> = {};
 
     for (let i = 0; i < batches.length; i++) {
       console.log(`[/api/admin/enrich] Batch ${i + 1}/${batches.length}...`);
       const inferred = await inferEnrichmentBatch(batches[i]);
+      // Merge inferred data — overwrite the empty {} stubs with real attributes
       Object.assign(allInferred, inferred);
     }
 
