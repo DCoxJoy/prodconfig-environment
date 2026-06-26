@@ -23,6 +23,9 @@
 - **Claude enrichment** — `src/lib/claudeEnrichment.ts` + `POST /api/admin/enrich` auto-generates enrichment for all BC products. Re-run when new SKUs are added.
 - **No-products handling** — if BC has no cases for a selected device, Review step shows a clear message and routes to Contact Sales instead of silently showing placeholder data
 - **BC IDs end-to-end** — `BundleItem.bcProductId`/`bcVariantId` from BC flow through to the cart route
+- **Scenario-implied features** — `/api/bundle` derives implied features from environment answers before scoring accessories: iPhone `carry_style: holster/hand` → implies `hand_strap`; `hands_free: yes` (both iPhone and tablet) → implies `shoulder_strap`. These implied features are merged with explicitly selected features for accessory scoring only.
+- **Device-specific accessory priority** — accessory pool is split into Tier 1 (BC `device_compatibility` explicitly lists the device) and Tier 2 (universal, no `device_compatibility`). Tier 1 is used when available, preventing tablet-only accessories (e.g. shoulder strap) from winning iPhone bundles where device-specific accessories exist (e.g. CPX302 Belt Clip Holster).
+- **iPhone `hand_strap` removed from Features step** — `hand_strap` is not a selectable feature for iPhone users; it is implied automatically via the `carry_style` environment question instead.
 
 ### Phase 2 files
 | File | Purpose |
@@ -57,11 +60,13 @@ curl -s -X POST http://localhost:3000/api/admin/enrich \
 | Field | Applies to | Values | Effect |
 |-------|-----------|--------|--------|
 | `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Selects mount when user picks this scenario answer |
-| `features` | Accessories (+ Cases) | FeatureId array | Scores accessory when user selects matching feature checkboxes |
+| `features` | Accessories (+ Cases) | FeatureId array | Scores accessory when user selects matching feature checkboxes OR when scenario implies the feature |
 | `series` | Cases | `Extreme\|Bold\|Slim\|Edge\|Standard\|Pro\|Go` | Used to rank cases by ruggedness fit |
 | `bundle_priority` | Cases | `1` (Option 1) or `2` (Option 2) | Tie-breaker when two cases score equally |
 
 Valid `features` values: `shoulder_strap`, `hand_strap`, `screen_protector`, `kensington_lock`, `magsafe`
+
+**`hand_strap` note:** For iPhone accessories (e.g. CPX302 Belt Clip Holster), set `features: ['hand_strap']` in enrichment.ts. The `hand_strap` FeatureId is intentionally NOT selectable by iPhone users in the Features step — it is implied automatically when `carry_style` is `holster` or `hand` in the Environment step. For tablet devices, `hand_strap` remains a selectable feature.
 
 Empty `{}` entries are intentional — they mark known BC SKUs so the bundle route skips runtime Claude inference for them.
 
@@ -417,7 +422,7 @@ export const DEVICE_FEATURE_MAP: Record<string, FeatureId[]> = {
   ipad_air:  ['ip_rating','mil_rating','screen_protector','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
   ipad_std:  ['ip_rating','mil_rating','screen_protector','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
   ipad_mini: ['ip_rating','mil_rating','screen_protector','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
-  iphone:    ['ip_rating','mil_rating','screen_protector','reinforced_corners','shoulder_strap','hand_strap','magsafe'],
+  iphone:    ['ip_rating','mil_rating','screen_protector','reinforced_corners','shoulder_strap','magsafe'],  // hand_strap omitted — implied via carry_style scenario answer
   surface:   ['ip_rating','mil_rating','screen_protector','reinforced_corners','chemical_resistant','thermo_defend','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','asset_tag','kensington_lock'],
   other:     ['ip_rating','mil_rating','screen_protector','reinforced_corners','shoulder_strap','hand_strap','kick_stand','asset_tag','kensington_lock'],
 };

@@ -89,7 +89,7 @@ export const PRODUCT_ENRICHMENT: Record<string, ProductEnrichment> = {
   'HPA3224':   { series: 'Extreme', bundle_priority: 1 },
   'CPA330S':   { series: 'Edge', bundle_priority: 2 },
   'CWA655MP':  { series: 'Slim', bundle_priority: 2 },
-  'CPX302':    {},
+  'CPX302':    { },
 };
 
 export function getEnrichment(sku: string): ProductEnrichment {

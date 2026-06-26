@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { getAllProducts, getFirstVariantIds, BcProductFull } from '../../../lib/bigcommerce';
 import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
 import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
-import { BundleItem, BundleOption, FeatureId, TabletScenarios } from '../../../types';
+import { BundleItem, BundleOption, FeatureId, type IphoneScenarios, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
 
@@ -119,13 +119,32 @@ function iconForAccessory(name: string, sku: string): string {
   return 'tool';
 }
 
+// ─── Scenario → implied features ──────────────────────────────────────────────
+// Maps environment answers to FeatureIds so scenario choices influence accessory scoring.
+
+function getImpliedFeatures(
+  scenarios: Partial<IphoneScenarios & TabletScenarios>,
+  isIphone: boolean,
+): FeatureId[] {
+  const implied: FeatureId[] = [];
+  if (isIphone) {
+    const s = scenarios as Partial<IphoneScenarios>;
+    if (s.carry_style === 'holster' || s.carry_style === 'hand') implied.push('hand_strap');
+    if (s.hands_free === 'yes') implied.push('shoulder_strap');
+  } else {
+    const s = scenarios as Partial<TabletScenarios>;
+    if (s.hands_free === 'yes') implied.push('shoulder_strap');
+  }
+  return implied;
+}
+
 // ─── Request / response types ─────────────────────────────────────────────────
 
 interface BundleRequest {
   deviceName: string;
   isIphone: boolean;
   features: FeatureId[];
-  scenarios: Partial<TabletScenarios & { carry_style: string; hands_free: string }>;
+  scenarios: Partial<IphoneScenarios & TabletScenarios>;
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
@@ -158,11 +177,19 @@ export async function POST(request: Request) {
     const mounts = active.filter(p => p.cf.product_type === 'Mounts');
     const mountSurface = (scenarios as TabletScenarios).mount_surface;
 
-    // ── Accessories: Universal, scored by selected features ────────────────
-    const accessories = active.filter(p => p.cf.product_type === 'Accessories');
+    // ── Accessories: device-specific takes priority over universal ────────────
+    // Tier 1: accessories with device_compatibility explicitly listing this device.
+    // Tier 2: accessories with no device_compatibility (truly universal).
+    // Using Tier 1 when available prevents universal accessories (e.g. tablet shoulder strap)
+    // from overriding device-specific ones (e.g. iPhone belt clip holster).
+    const allAccessories = active.filter(p => p.cf.product_type === 'Accessories');
+    const specificAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).includes(deviceName));
+    const universalAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).length === 0);
+    const accessories = specificAccessories.length > 0 ? specificAccessories : universalAccessories;
+    const effectiveFeatures = [...new Set([...features, ...getImpliedFeatures(scenarios, isIphone)])];
 
     // ── Infer enrichment for any SKUs not yet in the static map or cache ───
-    const allRelevant = [...cases, ...mounts, ...accessories];
+    const allRelevant = [...cases, ...mounts, ...allAccessories];
     const unknownSkus = allRelevant.filter(p => !hasEnrichment(p.sku));
     if (unknownSkus.length > 0) {
       console.log(`[/api/bundle] ${unknownSkus.length} SKUs without enrichment — calling Claude...`);
@@ -189,7 +216,7 @@ export async function POST(request: Request) {
 
     // ── Select best accessory ──────────────────────────────────────────────
     const scoredAcc = accessories
-      .map(p => ({ p, score: scoreAccessory(p.name, p.sku, features) }))
+      .map(p => ({ p, score: scoreAccessory(p.name, p.sku, effectiveFeatures) }))
       .sort((a, b) => b.score - a.score);
 
     let selectedAccessory: (typeof products)[0] | null = null;
