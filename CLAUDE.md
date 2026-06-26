@@ -9,35 +9,61 @@
 
 ---
 
-## CURRENT STATUS — PHASE 2 BUNDLE LOGIC WORKING
+## CURRENT STATUS — PHASE 2 COMPLETE (except AI edit)
 
-**Phase 1 complete + Phase 2 Steps 1–3 implemented.** All 5 steps are navigable and live BC product data drives the bundle. Do not delete or rebuild from scratch.
+**Phase 1 complete + Phase 2 Steps 1–3 fully working.** All 5 steps navigable, live BC data drives the bundle, enrichment layer controls recommendations. Do not delete or rebuild from scratch.
 
 ### What's done
-- All 5 steps + Contact Sales step fully implemented and navigable
+- All 5 steps + Contact Sales fully navigable
 - Real Claude API call wired in (`/api/claude` → StepBundle "Why this bundle fits" section)
 - HubSpot and BigCommerce cart API routes implemented
-- embed.js widget in `/public/embed.js` for drop-in iframe embedding on external sites
-- **Phase 2: Live BC bundle logic fully working** — `/api/bundle` fetches all BC products, filters cases by `device_compatibility`, scores Universal mounts against `mount_surface` scenario answer, scores accessories against selected features, returns up to 2 `BundleOption[]` with real BC product IDs baked in
-- **Phase 2: Accessory fallback** — if no feature-specific accessory matches, defaults to screen protector → shoulder strap → first in pool
-- **Phase 2: BC IDs flow end-to-end** — `BundleItem` carries `bcProductId`/`bcVariantId` from BC; cart route uses these directly without needing `SKU_TO_BC_IDS`
-- **Phase 2: 5-min cache** — all BC API calls use `next: { revalidate: 300 }` to avoid hammering the API on every page load
+- embed.js widget in `/public/embed.js` for drop-in iframe embedding
+- **Live BC bundle** — `/api/bundle` fetches all BC products, filters cases by `device_compatibility`, scores mounts/accessories via enrichment data, returns up to 2 `BundleOption[]` with real BC product IDs
+- **Enrichment layer** — `src/lib/enrichment.ts` is the recommendation control file. Maps SKU → `{ mount_surface, features[], series, bundle_priority }`. Scoring uses this first; keyword matching is the fallback for any SKU not in the map.
+- **Claude enrichment** — `src/lib/claudeEnrichment.ts` + `POST /api/admin/enrich` auto-generates enrichment for all BC products. Re-run when new SKUs are added.
+- **No-products handling** — if BC has no cases for a selected device, Review step shows a clear message and routes to Contact Sales instead of silently showing placeholder data
+- **BC IDs end-to-end** — `BundleItem.bcProductId`/`bcVariantId` from BC flow through to the cart route
 
-### Phase 2 files added / modified
-| File | Status |
-|------|--------|
-| `src/lib/bigcommerce.ts` | New — BC API client, `getAllProducts()`, `getFirstVariantIds()`, `getProductsByIds()` |
-| `src/app/api/bundle/route.ts` | New — live bundle builder from BC catalog |
-| `src/app/api/prices/route.ts` | New — SKU→price lookup (fallback, mostly superseded by bundle route) |
-| `src/app/api/products/route.ts` | New — raw product list endpoint |
-| `src/types/index.ts` | Modified — `BundleItem` gains `bcProductId?`, `bcVariantId?` |
-| `src/lib/ConfiguratorContext.tsx` | Modified — `liveBundleOptions` state, `SET_BUNDLE_OPTIONS` action, 3-priority `liveProducts` useMemo |
-| `src/components/configurator/StepReview.tsx` | Modified — fetches `/api/bundle` on mount, shows loading spinner |
-| `src/app/api/cart/route.ts` | Modified — prefers live BC IDs over `SKU_TO_BC_IDS` map |
-| `src/lib/aiEdit.ts` | Modified — clears `bcProductId`/`bcVariantId` on AI swap |
+### Phase 2 files
+| File | Purpose |
+|------|---------|
+| `src/lib/bigcommerce.ts` | BC API client — `getAllProducts()`, `getFirstVariantIds()` |
+| `src/lib/enrichment.ts` | **Primary recommendation control** — SKU→attribute map, runtime cache |
+| `src/lib/claudeEnrichment.ts` | Batch Claude inference for unknown SKUs |
+| `src/app/api/bundle/route.ts` | Live bundle builder — enrichment-scored, BC-sourced |
+| `src/app/api/admin/enrich/route.ts` | One-shot seed endpoint — POST to regenerate enrichment map |
+| `src/app/api/prices/route.ts` | SKU→price fallback (mostly superseded by bundle route) |
+| `src/app/api/products/route.ts` | Raw BC product list endpoint |
+| `src/types/index.ts` | `BundleItem` gains `bcProductId?`, `bcVariantId?` |
+| `src/lib/ConfiguratorContext.tsx` | `liveBundleOptions` state, `SET_BUNDLE_OPTIONS`, 3-priority `liveProducts` |
+| `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount, no-products message |
+| `src/app/api/cart/route.ts` | Prefers live BC IDs over `SKU_TO_BC_IDS` map |
+| `src/lib/aiEdit.ts` | Clears BC IDs on AI swap |
 
 ### Phase 2 still to do
-- Phase 2 Step 4: Two-pass Claude AI logic at Review step (`/api/ai-edit` route) — currently still using client-side keyword matching in `aiEdit.ts`
+- Phase 2 Step 4: Two-pass Claude AI logic at Review step (`/api/ai-edit` route) — currently still client-side keyword matching in `aiEdit.ts`
+
+### Enrichment workflow (run when BC catalog changes)
+```bash
+# 1. Seed enrichment for all current BC products
+curl -s -X POST http://localhost:3000/api/admin/enrich \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['typescript'])"
+
+# 2. Paste the output into PRODUCT_ENRICHMENT in src/lib/enrichment.ts
+# 3. Commit enrichment.ts
+```
+
+### Enrichment field reference
+| Field | Applies to | Values | Effect |
+|-------|-----------|--------|--------|
+| `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Selects mount when user picks this scenario answer |
+| `features` | Accessories (+ Cases) | FeatureId array | Scores accessory when user selects matching feature checkboxes |
+| `series` | Cases | `Extreme\|Bold\|Slim\|Edge\|Standard\|Pro\|Go` | Used to rank cases by ruggedness fit |
+| `bundle_priority` | Cases | `1` (Option 1) or `2` (Option 2) | Tie-breaker when two cases score equally |
+
+Valid `features` values: `shoulder_strap`, `hand_strap`, `screen_protector`, `kensington_lock`, `magsafe`
+
+Empty `{}` entries are intentional — they mark known BC SKUs so the bundle route skips runtime Claude inference for them.
 
 ### Dev server
 Requires Node v20 via nvm:
