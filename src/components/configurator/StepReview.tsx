@@ -41,13 +41,17 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
 
     let cancelled = false;
     setBundleLoading(true);
+    setNoProductsFound(false);
 
     fetch('/api/bundle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios }),
     })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(`Bundle API error: ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (cancelled) return;
         if (data.options && data.options.length > 0) {
@@ -57,11 +61,14 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
           setNoProductsFound(true);
         }
       })
-      .catch(err => console.error('[StepReview] Bundle fetch failed:', err))
+      .catch(err => {
+        console.error('[StepReview] Bundle fetch failed:', err);
+        if (!cancelled) setNoProductsFound(true);
+      })
       .finally(() => { if (!cancelled) setBundleLoading(false); });
 
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [liveBundleOptions]); // re-run whenever liveBundleOptions resets to null (device change or HMR)
 
   // Bundle option tabs come from live BC data when available, else from hardcoded catalog
   const bundleOptions = liveBundleOptions ?? (isIphone ? BP_IPHONE : BP_TABLET);
