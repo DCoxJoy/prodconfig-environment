@@ -26,6 +26,11 @@
 - **Scenario-implied features** — `/api/bundle` derives implied features from environment answers before scoring accessories: iPhone `carry_style: holster/hand` → implies `hand_strap`; `hands_free: yes` (both iPhone and tablet) → implies `shoulder_strap`. These implied features are merged with explicitly selected features for accessory scoring only.
 - **Device-specific accessory priority** — accessory pool is split into Tier 1 (BC `device_compatibility` explicitly lists the device) and Tier 2 (universal, no `device_compatibility`). Tier 1 is used when available, preventing tablet-only accessories (e.g. shoulder strap) from winning iPhone bundles where device-specific accessories exist (e.g. CPX302 Belt Clip Holster).
 - **iPhone `hand_strap` removed from Features step** — `hand_strap` is not a selectable feature for iPhone users; it is implied automatically via the `carry_style` environment question instead.
+- **HD mount priority** — all 7 HD mount SKUs (MMU232, MMU332, MVU232, MVU332, MMU230, MMU231, MMU331) have `bundle_priority: 1` in enrichment.ts. `scoreMount` uses `bundle_priority` as a fractional tiebreaker (same pattern as cases), so HD mounts beat non-HD mounts with the same `mount_surface` every time.
+- **`solution_type` scoring** — `scoreMount` in `/api/bundle` reads the BC `solution_type` custom field (Drill Down, Adhesive, Rail/Pole) and applies a bonus score when the user's `mount_install` answer matches: adhesive preference → +2 to adhesive mounts; drill preference → +2 to drill-only mounts (VESA), +1 to drill+adhesive combo mounts; rail → +2 to Rail/Pole mounts. For vehicle and pole surfaces, `mount_install` is inferred automatically (vehicle → drill, pole → rail) so no question is shown.
+- **`mount_install` environment question** — conditional tablet question "How will the mount attach to the surface?" with choices Permanent/drill-down and Adhesive/no-drill. Only shown when `mount_surface` is `wall` or `desk`. `getActiveTabletQuestions(mountSurface?)` in `questions.ts` computes the active question set; used by both `StepEnvironment` and `ConfiguratorShell` for display and the Next button gate.
+- **Environment question updates** — `power_needed` question removed; `mount_surface` choices renamed: "Vehicle / forklift" → "Vehicle / Drill Down", "Pole / arm" → "Forklift / Pole"
+- **StepReview HMR fix** — `useEffect` now depends on `[liveBundleOptions]` so it re-fetches whenever context resets to null (device change, HMR hot-reload). Proper `r.ok` check and `catch` block set `noProductsFound` instead of silently falling back to placeholder data.
 
 ### Phase 2 files
 | File | Purpose |
@@ -37,11 +42,12 @@
 | `src/app/api/admin/enrich/route.ts` | One-shot seed endpoint — POST to regenerate enrichment map |
 | `src/app/api/prices/route.ts` | SKU→price fallback (mostly superseded by bundle route) |
 | `src/app/api/products/route.ts` | Raw BC product list endpoint |
-| `src/types/index.ts` | `BundleItem` gains `bcProductId?`, `bcVariantId?` |
+| `src/types/index.ts` | `BundleItem` gains `bcProductId?`/`bcVariantId?`; `TabletScenarios` gains `mount_install?: 'drill'\|'adhesive'\|'rail'` |
 | `src/lib/ConfiguratorContext.tsx` | `liveBundleOptions` state, `SET_BUNDLE_OPTIONS`, 3-priority `liveProducts` |
 | `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount, no-products message |
 | `src/app/api/cart/route.ts` | Prefers live BC IDs over `SKU_TO_BC_IDS` map |
 | `src/lib/aiEdit.ts` | Clears BC IDs on AI swap |
+| `src/lib/questions.ts` | `ENV_QUESTIONS_TABLET` — `power_needed` removed, `mount_install` added (conditional), choice labels updated; `getActiveTabletQuestions(mountSurface?)` helper exported |
 
 ### Phase 2 still to do
 - Phase 2 Step 4: Two-pass Claude AI logic at Review step (`/api/ai-edit` route) — currently still client-side keyword matching in `aiEdit.ts`
@@ -59,10 +65,10 @@ curl -s -X POST http://localhost:3000/api/admin/enrich \
 ### Enrichment field reference
 | Field | Applies to | Values | Effect |
 |-------|-----------|--------|--------|
-| `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Selects mount when user picks this scenario answer |
+| `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Selects mount when user picks this scenario answer; BC `solution_type` custom field is then used as a secondary score for adhesive vs drill-down preference |
 | `features` | Accessories (+ Cases) | FeatureId array | Scores accessory when user selects matching feature checkboxes OR when scenario implies the feature |
 | `series` | Cases | `Extreme\|Bold\|Slim\|Edge\|Standard\|Pro\|Go` | Used to rank cases by ruggedness fit |
-| `bundle_priority` | Cases | `1` (Option 1) or `2` (Option 2) | Tie-breaker when two cases score equally |
+| `bundle_priority` | Cases + Mounts | `1` = preferred, `2` = secondary | Tie-breaker when two products score equally. All 7 HD mount SKUs use `bundle_priority: 1` so they beat non-HD mounts of the same surface type. |
 
 Valid `features` values: `shoulder_strap`, `hand_strap`, `screen_protector`, `kensington_lock`, `magsafe`
 

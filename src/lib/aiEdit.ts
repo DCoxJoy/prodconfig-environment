@@ -1,3 +1,6 @@
+// Superseded by Phase 2 Step 4 — /api/ai-edit handles all AI edit logic server-side.
+// This file is retained for reference only and is no longer imported.
+
 import { BundleItem } from '../types';
 import { SWAP_CATALOG_IPHONE, SWAP_CATALOG_TABLET } from './catalog';
 

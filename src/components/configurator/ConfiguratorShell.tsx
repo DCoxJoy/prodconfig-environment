@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { IconRefresh } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { getDeviceFamily } from '../../lib/utils';
-import { ENV_QUESTIONS_IPHONE, ENV_QUESTIONS_TABLET } from '../../lib/questions';
+import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
 import ProgressBar from '../ui/ProgressBar';
 import StepNav from '../ui/StepNav';
 import StepDevices from './StepDevices';
@@ -44,8 +44,10 @@ export default function ConfiguratorShell() {
   function isNextEnabled(): boolean {
     if (step === 'features') return certified === 'yes' || features.length > 0;
     if (step === 'environment') {
-      const questions = getDeviceFamily(device?.id ?? '') === 'iphone' ? ENV_QUESTIONS_IPHONE : ENV_QUESTIONS_TABLET;
-      return Object.keys(scenarios).length === questions.length;
+      const activeQs = getDeviceFamily(device?.id ?? '') === 'iphone'
+        ? ENV_QUESTIONS_IPHONE
+        : getActiveTabletQuestions(scenarios.mount_surface);
+      return activeQs.every(q => !!scenarios[q.key as keyof typeof scenarios]);
     }
     return false;
   }
@@ -126,10 +128,11 @@ export default function ConfiguratorShell() {
     : '';
 
   /* ── breadcrumb pieces ─────────────────────────────────────────────────── */
-  const totalEnvQs = getDeviceFamily(device?.id ?? '') === 'iphone'
-    ? ENV_QUESTIONS_IPHONE.length
-    : ENV_QUESTIONS_TABLET.length;
-  const answeredEnv = Object.keys(scenarios).length;
+  const activeEnvQs = getDeviceFamily(device?.id ?? '') === 'iphone'
+    ? ENV_QUESTIONS_IPHONE
+    : getActiveTabletQuestions(scenarios.mount_surface);
+  const totalEnvQs  = activeEnvQs.length;
+  const answeredEnv = activeEnvQs.filter(q => !!scenarios[q.key as keyof typeof scenarios]).length;
 
   return (
     <div>

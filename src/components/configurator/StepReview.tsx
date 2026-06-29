@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { IconSparkles, IconSend, IconCheck, IconLoader2 } from '@tabler/icons-react';
+import { IconSparkles, IconSend, IconCheck, IconLoader2, IconInfoCircle } from '@tabler/icons-react';
 import { BP_IPHONE, BP_TABLET } from '../../lib/catalog';
 import { getDeviceFamily, isIphoneFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
-import { interpretEditRequest } from '../../lib/aiEdit';
 import QtyControl from '../ui/QtyControl';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -26,6 +25,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
   const [bundleLoading, setBundleLoading] = useState(liveBundleOptions === null);
   const [noProductsFound, setNoProductsFound] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
 
   // Fetch live bundle from BC on first render. If liveBundleOptions is already set
   // (e.g. user navigated back and forward), skip the fetch.
@@ -77,8 +77,8 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
   const totalQty = qtys.reduce((a, b) => a + b, 0);
 
   const aiHint = isIphone
-    ? 'Try "swap the holster for a shoulder strap" or "switch to the rugged Extreme case"'
-    : 'Try "swap the mount for a vehicle mount" or "switch to the slim case"';
+    ? 'Try "swap for a shoulder strap" or "I need a screen protector instead"'
+    : 'Try "I need a vehicle mount" or "swap for a shoulder strap"';
 
   const matchedEdits = appliedEdits.filter(e => e.matched);
 
@@ -86,24 +86,46 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
     dispatch({ type: 'SET_QTYS', qtys: qtys.map((q, i) => (i === index ? value : q)) });
   }
 
-  function applyAiEdit() {
+  async function applyAiEdit() {
     const note = editNote.trim();
     if (!note || thinking) return;
     setThinking(true);
+    setAiMessage(null);
 
-    setTimeout(() => {
-      const result = interpretEditRequest(note, liveProducts, qtys, isIphone);
-      setThinking(false);
+    try {
+      const res = await fetch('/api/ai-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userMessage: note,
+          currentBundle: liveProducts,
+          deviceName: device?.name ?? '',
+          isIphone,
+          features,
+          scenarios,
+        }),
+      });
+      const data = await res.json();
 
-      if (result.matched) {
-        if (result.updatedProducts) dispatch({ type: 'SET_LIVE_PRODUCTS', products: result.updatedProducts });
-        if (result.updatedQtys)    dispatch({ type: 'SET_QTYS', qtys: result.updatedQtys });
-        dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: true, detail: result.detail } });
+      if (data.action === 'case_change_request') {
+        setAiMessage('To change your case, go back to Step 2 and adjust your feature preferences — your bundle will update automatically.');
+        dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
+      } else if (data.matched && data.updatedItem) {
+        const updatedProducts = liveProducts.map(p =>
+          p.type === data.updatedItem.type ? data.updatedItem : p
+        );
+        dispatch({ type: 'SET_LIVE_PRODUCTS', products: updatedProducts });
+        dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: true, detail: data.reason } });
       } else {
         dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
         onEscalate(note);
       }
-    }, 700);
+    } catch {
+      dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
+      onEscalate(note);
+    } finally {
+      setThinking(false);
+    }
   }
 
   return (
@@ -247,6 +269,14 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
               </span>
             </div>
           ))}
+
+          {/* Case-change guidance message */}
+          {aiMessage && (
+            <div className="flex items-start gap-2 bg-[#eff6ff] border border-[#bfdbfe] rounded-xl px-3.5 py-3 mt-3 text-[12px] text-[#1e40af]">
+              <IconInfoCircle size={14} className="flex-shrink-0 mt-0.5" />
+              <span>{aiMessage}</span>
+            </div>
+          )}
         </div>
       </div>
 

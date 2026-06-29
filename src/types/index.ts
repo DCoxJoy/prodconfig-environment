@@ -43,6 +43,7 @@ export interface IphoneScenarios {
 export interface TabletScenarios {
   motion?: 'carried' | 'stationed' | 'both';
   mount_surface?: 'wall' | 'vehicle' | 'desk' | 'pole' | 'na';
+  mount_install?: 'drill' | 'adhesive' | 'rail';
   mount_rotation?: 'yes' | 'no';
   power_needed?: 'yes' | 'no';
   location?: 'indoor' | 'outdoor' | 'both';

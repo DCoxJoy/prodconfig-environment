@@ -42,10 +42,33 @@ const MOUNT_SURFACE_KEYWORDS: Record<string, string[]> = {
   pole:    ['tripod', 'mic stand', 'pole'],
 };
 
-function scoreMount(name: string, sku: string, mountSurface: string): number {
+function getSolutionTypes(cf: CfMap): string[] {
+  const raw = cf.solution_type;
+  if (!raw) return [];
+  const values = Array.isArray(raw) ? raw : [raw as string];
+  return values.flatMap(v => v.split(',').map(s => s.trim().toLowerCase())).filter(Boolean);
+}
+
+function scoreMount(name: string, sku: string, mountSurface: string, mountInstall?: string, solutionTypes: string[] = []): number {
   const enrichment = getEnrichment(sku);
   if (enrichment.mount_surface !== undefined) {
-    return enrichment.mount_surface === mountSurface ? 10 : 0;
+    if (enrichment.mount_surface !== mountSurface) return 0;
+    // bundle_priority: lower number = higher rank. Priority 1 → +0.9, priority 2 → +0.8, none → +0
+    const priorityBonus = enrichment.bundle_priority ? (10 - enrichment.bundle_priority) * 0.1 : 0;
+    let score = 10 + priorityBonus;
+    // solution_type bonus: reward mounts whose attachment method matches the user's preference.
+    // Prefer drill-only mounts (+2) over drill+adhesive combo mounts (+1) when drill is wanted,
+    // so VESA beats adhesive when the user selects permanent install.
+    if (mountInstall && solutionTypes.length > 0) {
+      const hasDrill    = solutionTypes.some(s => s.includes('drill'));
+      const hasAdhesive = solutionTypes.some(s => s.includes('adhesive'));
+      const hasRail     = solutionTypes.some(s => s.includes('rail') || s.includes('pole'));
+      if (mountInstall === 'adhesive' && hasAdhesive)              score += 2;
+      if (mountInstall === 'drill'    && hasDrill && !hasAdhesive) score += 2;
+      if (mountInstall === 'drill'    && hasDrill && hasAdhesive)  score += 1;
+      if (mountInstall === 'rail'     && hasRail)                  score += 2;
+    }
+    return score;
   }
   // Keyword fallback
   const lower = name.toLowerCase();
@@ -205,10 +228,16 @@ export async function POST(request: Request) {
     }
 
     // ── Select best mount ──────────────────────────────────────────────────
+    // mount_install from scenarios (wall/desk only). For vehicle/pole, infer from surface:
+    // vehicle always uses AMPs drill-down; pole always uses rail/clamp.
+    const mountInstall: string | undefined =
+      (scenarios as Partial<TabletScenarios>).mount_install
+      ?? (mountSurface === 'vehicle' ? 'drill' : mountSurface === 'pole' ? 'rail' : undefined);
+
     let selectedMount: (typeof products)[0] | null = null;
     if (!isIphone && mountSurface && mountSurface !== 'na') {
       const scored = mounts
-        .map(p => ({ p, score: scoreMount(p.name, p.sku, mountSurface) }))
+        .map(p => ({ p, score: scoreMount(p.name, p.sku, mountSurface, mountInstall, getSolutionTypes(p.cf)) }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score);
       selectedMount = scored[0]?.p ?? null;

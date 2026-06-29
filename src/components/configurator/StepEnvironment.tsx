@@ -1,7 +1,7 @@
 'use client';
 
 import { IconDeviceMobile, IconDeviceIpad } from '@tabler/icons-react';
-import { ENV_QUESTIONS_IPHONE, ENV_QUESTIONS_TABLET } from '../../lib/questions';
+import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
 import { getDeviceFamily, isIphoneFamily } from '../../lib/utils';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 
@@ -11,8 +11,10 @@ export default function StepEnvironment() {
 
   const family    = getDeviceFamily(device?.id ?? '');
   const isIphone  = isIphoneFamily(family);
-  const questions = isIphone ? ENV_QUESTIONS_IPHONE : ENV_QUESTIONS_TABLET;
-  const answered  = Object.keys(scenarios).length;
+  const questions = isIphone
+    ? ENV_QUESTIONS_IPHONE
+    : getActiveTabletQuestions(scenarios.mount_surface);
+  const answered  = questions.filter(q => !!scenarios[q.key as keyof typeof scenarios]).length;
 
   function pickScenario(key: string, value: string) {
     dispatch({ type: 'SET_SCENARIO', key, value });

@@ -72,10 +72,19 @@ export const ENV_QUESTIONS_TABLET: EnvQuestion[] = [
     hint: 'Drives the specific mount type',
     choices: [
       { id: 'wall',    label: 'Wall / panel' },
-      { id: 'vehicle', label: 'Vehicle / forklift' },
+      { id: 'vehicle', label: 'Vehicle / Drill Down' },
       { id: 'desk',    label: 'Desk / counter' },
-      { id: 'pole',    label: 'Pole / arm' },
+      { id: 'pole',    label: 'Forklift / Pole' },
       { id: 'na',      label: 'Not mounted' },
+    ],
+  },
+  {
+    key: 'mount_install',
+    q: 'How will the mount attach to the surface?',
+    hint: 'Determines adhesive vs. drill-down mounting solution',
+    choices: [
+      { id: 'drill',    label: 'Permanent / drill-down' },
+      { id: 'adhesive', label: 'Adhesive / no-drill' },
     ],
   },
   {
@@ -85,15 +94,6 @@ export const ENV_QUESTIONS_TABLET: EnvQuestion[] = [
     choices: [
       { id: 'yes', label: 'Yes' },
       { id: 'no',  label: 'No' },
-    ],
-  },
-  {
-    key: 'power_needed',
-    q: 'Does the device need power at its mounted location?',
-    hint: 'Determines whether a powered dock is included',
-    choices: [
-      { id: 'yes', label: 'Yes, needs power' },
-      { id: 'no',  label: 'No, battery only' },
     ],
   },
   {
@@ -125,3 +125,14 @@ export const ENV_QUESTIONS_TABLET: EnvQuestion[] = [
     ],
   },
 ];
+
+// Returns the active subset of tablet questions based on current answers.
+// mount_install is only shown when mount_surface is wall or desk (where
+// adhesive vs. drill-down is a real choice). Vehicle → always drill (AMPs
+// standard), pole → always rail, na → no mount at all.
+export function getActiveTabletQuestions(mountSurface?: string): EnvQuestion[] {
+  return ENV_QUESTIONS_TABLET.filter(q => {
+    if (q.key !== 'mount_install') return true;
+    return mountSurface === 'wall' || mountSurface === 'desk';
+  });
+}
