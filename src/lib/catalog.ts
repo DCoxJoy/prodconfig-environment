@@ -56,12 +56,12 @@ export const DEVICE_GROUPS: DeviceGroup[] = [
 // ─── Device → Allowed Features Map ───────────────────────────────────────────
 
 export const DEVICE_FEATURE_MAP: Record<string, FeatureId[]> = {
-  ipad_pro:  ['ip_rating','mil_rating','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
-  ipad_air:  ['ip_rating','mil_rating','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
-  ipad_std:  ['ip_rating','mil_rating','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
-  ipad_mini: ['ip_rating','mil_rating','reinforced_corners','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
+  ipad_pro:  ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
+  ipad_air:  ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
+  ipad_std:  ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
+  ipad_mini: ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','hand_strap','kick_stand','pencil_holder','asset_tag','kensington_lock'],
   iphone:    ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','magsafe'],
-  surface:   ['ip_rating','mil_rating','reinforced_corners','chemical_resistant','thermo_defend','vesa_compatible','magconnect','shoulder_strap','hand_strap','kick_stand','asset_tag','kensington_lock'],
+  surface:   ['ip_rating','mil_rating','reinforced_corners','chemical_resistant','thermo_defend','shoulder_strap','hand_strap','kick_stand','asset_tag','kensington_lock'],
   other:     ['ip_rating','mil_rating','reinforced_corners','shoulder_strap','hand_strap','kick_stand','asset_tag','kensington_lock'],
 };
 

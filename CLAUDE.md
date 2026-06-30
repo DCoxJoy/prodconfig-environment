@@ -9,9 +9,9 @@
 
 ---
 
-## CURRENT STATUS — PHASE 2 COMPLETE (except AI edit)
+## CURRENT STATUS — PHASE 2 COMPLETE
 
-**Phase 1 complete + Phase 2 Steps 1–3 fully working.** All 5 steps navigable, live BC data drives the bundle, enrichment layer controls recommendations. Do not delete or rebuild from scratch.
+**Phase 1 complete + Phase 2 fully working.** All 5 steps navigable, live BC data drives the bundle, enrichment layer controls recommendations, two-pass Claude AI edit live at Review step. Do not delete or rebuild from scratch.
 
 ### What's done
 - All 5 steps + Contact Sales fully navigable
@@ -19,7 +19,7 @@
 - HubSpot and BigCommerce cart API routes implemented
 - embed.js widget in `/public/embed.js` for drop-in iframe embedding
 - **Live BC bundle** — `/api/bundle` fetches all BC products, filters cases by `device_compatibility`, scores mounts/accessories via enrichment data, returns up to 2 `BundleOption[]` with real BC product IDs
-- **Enrichment layer** — `src/lib/enrichment.ts` is the recommendation control file. Maps SKU → `{ mount_surface, features[], series, bundle_priority }`. Scoring uses this first; keyword matching is the fallback for any SKU not in the map.
+- **Enrichment layer** — `src/lib/enrichment.ts` is the recommendation control file. Maps SKU → `{ mount_surface[], features[], series, bundle_priority }`. Scoring uses this first; keyword matching is the fallback for any SKU not in the map.
 - **Claude enrichment** — `src/lib/claudeEnrichment.ts` + `POST /api/admin/enrich` auto-generates enrichment for all BC products. Re-run when new SKUs are added.
 - **No-products handling** — if BC has no cases for a selected device, Review step shows a clear message and routes to Contact Sales instead of silently showing placeholder data
 - **BC IDs end-to-end** — `BundleItem.bcProductId`/`bcVariantId` from BC flow through to the cart route
@@ -31,6 +31,11 @@
 - **`mount_install` environment question** — conditional tablet question "How will the mount attach to the surface?" with choices Permanent/drill-down and Adhesive/no-drill. Only shown when `mount_surface` is `wall` or `desk`. `getActiveTabletQuestions(mountSurface?)` in `questions.ts` computes the active question set; used by both `StepEnvironment` and `ConfiguratorShell` for display and the Next button gate.
 - **Environment question updates** — `power_needed` question removed; `mount_surface` choices renamed: "Vehicle / forklift" → "Vehicle / Drill Down", "Pole / arm" → "Forklift / Pole"
 - **StepReview HMR fix** — `useEffect` now depends on `[liveBundleOptions]` so it re-fetches whenever context resets to null (device change, HMR hot-reload). Proper `r.ok` check and `catch` block set `noProductsFound` instead of silently falling back to placeholder data.
+- **Two-pass Claude AI edit** (`/api/ai-edit`) — replaces client-side keyword matching in `aiEdit.ts`. Pass 1: Claude parses free-text request into structured intent (action, component, constraints). Pass 2: filters live BC catalog by device compatibility and product type, Claude selects best candidate and returns a one-sentence reason. The **case is locked** — AI edits only swap Mount or Accessory. If the user asks to change the case, an inline guidance message appears ("go back to Step 2"). Low-confidence or no-candidate results escalate to Contact Sales. `src/lib/aiEdit.ts` is retained as a reference but is no longer imported.
+- **`mount_surface` is now an array** in `ProductEnrichment` — a single mount SKU can list multiple compatible surfaces (e.g. `['wall', 'desk']`). `scoreMount` uses `.includes()` for surface matching. 10 SKUs gained `'desk'` as an additional surface: MMU104, MMU115, MNU504, MMU117, MMU332, MMU232, MMU331, MMU231, MVU332, MVU232.
+- **Case-mount compatibility enforcement** — mount selection is now per-case (not shared across both bundle options). After selecting each case, the bundle route checks if it has `vesa_compatible` in enrichment features before allowing drill-only mounts. Compatibility matrix: **Bold + Extreme (HTA6024, CWM347MP)** → VESA/Drill Down + MagConnect; **Slim, Pro, Go, Edge (tablet)** → MagConnect only, no drill-only mounts. HD mounts (drill+adhesive solution_type) qualify for all series since adhesive option is always present. This prevents Slim+VESA incompatible bundles.
+- **Features step label updates** — "MIL-STD-810H rated" → "Drop-proof certified" (MIL-STD-810H moved to description); "Kensington lock compatible" → "Lockable Protection"; "VESA mount compatible" → "Secure mount compatible" (VESA in description); "MagConnect compatible" → "Magnetic mount compatible" (MagConnect in description); "Screen protector included" removed from selectable list (still drives accessory scoring internally, same pattern as `hand_strap` for iPhone).
+- **`vesa_compatible` and `magconnect` removed from selectable features** — both removed from `DEVICE_FEATURE_MAP` in `catalog.ts`. Mount pairing is now driven entirely by environment answers (`mount_surface` + `mount_install`) and the case-series compatibility filter. Case enrichment entries carry `vesa_compatible`/`magconnect` internally for bundle logic — they are not user-facing.
 
 ### Phase 2 files
 | File | Purpose |
@@ -38,19 +43,18 @@
 | `src/lib/bigcommerce.ts` | BC API client — `getAllProducts()`, `getFirstVariantIds()` |
 | `src/lib/enrichment.ts` | **Primary recommendation control** — SKU→attribute map, runtime cache |
 | `src/lib/claudeEnrichment.ts` | Batch Claude inference for unknown SKUs |
-| `src/app/api/bundle/route.ts` | Live bundle builder — enrichment-scored, BC-sourced |
+| `src/app/api/bundle/route.ts` | Live bundle builder — per-case mount selection with compatibility filter |
+| `src/app/api/ai-edit/route.ts` | Two-pass Claude AI edit — intent parsing + BC candidate selection |
 | `src/app/api/admin/enrich/route.ts` | One-shot seed endpoint — POST to regenerate enrichment map |
 | `src/app/api/prices/route.ts` | SKU→price fallback (mostly superseded by bundle route) |
 | `src/app/api/products/route.ts` | Raw BC product list endpoint |
 | `src/types/index.ts` | `BundleItem` gains `bcProductId?`/`bcVariantId?`; `TabletScenarios` gains `mount_install?: 'drill'\|'adhesive'\|'rail'` |
 | `src/lib/ConfiguratorContext.tsx` | `liveBundleOptions` state, `SET_BUNDLE_OPTIONS`, 3-priority `liveProducts` |
-| `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount, no-products message |
+| `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount; calls `/api/ai-edit` for AI edits; no-products message |
 | `src/app/api/cart/route.ts` | Prefers live BC IDs over `SKU_TO_BC_IDS` map |
-| `src/lib/aiEdit.ts` | Clears BC IDs on AI swap |
+| `src/lib/aiEdit.ts` | **Superseded** — retained for reference; no longer imported |
 | `src/lib/questions.ts` | `ENV_QUESTIONS_TABLET` — `power_needed` removed, `mount_install` added (conditional), choice labels updated; `getActiveTabletQuestions(mountSurface?)` helper exported |
-
-### Phase 2 still to do
-- Phase 2 Step 4: Two-pass Claude AI logic at Review step (`/api/ai-edit` route) — currently still client-side keyword matching in `aiEdit.ts`
+| `src/lib/catalog.ts` | Feature labels updated; `vesa_compatible` + `magconnect` + `screen_protector` removed from `DEVICE_FEATURE_MAP` |
 
 ### Enrichment workflow (run when BC catalog changes)
 ```bash
@@ -59,20 +63,35 @@ curl -s -X POST http://localhost:3000/api/admin/enrich \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['typescript'])"
 
 # 2. Paste the output into PRODUCT_ENRICHMENT in src/lib/enrichment.ts
-# 3. Commit enrichment.ts
+# 3. Manually re-add mount_surface arrays, vesa_compatible/magconnect case features,
+#    and bundle_priority values — the enrich endpoint does not generate these.
+# 4. Commit enrichment.ts
 ```
 
 ### Enrichment field reference
 | Field | Applies to | Values | Effect |
 |-------|-----------|--------|--------|
-| `mount_surface` | Mounts | `wall\|vehicle\|desk\|pole\|na` | Selects mount when user picks this scenario answer; BC `solution_type` custom field is then used as a secondary score for adhesive vs drill-down preference |
-| `features` | Accessories (+ Cases) | FeatureId array | Scores accessory when user selects matching feature checkboxes OR when scenario implies the feature |
+| `mount_surface` | Mounts | Array of `wall\|vehicle\|desk\|pole\|na` | A mount can list multiple surfaces (e.g. `['wall','desk']`). `scoreMount` uses `.includes()` to match the user's scenario answer. BC `solution_type` is used as a secondary score for adhesive vs drill-down preference. |
+| `features` | Accessories + Cases | FeatureId array | **Accessories:** scored when user selects matching features or scenario implies them. **Cases:** `vesa_compatible` gates whether drill-only mounts are allowed for that case; `magconnect` is informational. Neither is user-selectable — they drive internal bundle logic only. |
 | `series` | Cases | `Extreme\|Bold\|Slim\|Edge\|Standard\|Pro\|Go` | Used to rank cases by ruggedness fit |
 | `bundle_priority` | Cases + Mounts | `1` = preferred, `2` = secondary | Tie-breaker when two products score equally. All 7 HD mount SKUs use `bundle_priority: 1` so they beat non-HD mounts of the same surface type. |
 
-Valid `features` values: `shoulder_strap`, `hand_strap`, `screen_protector`, `kensington_lock`, `magsafe`
+Valid `features` values for **accessories**: `shoulder_strap`, `hand_strap`, `screen_protector`, `kensington_lock`, `magsafe`
+Valid `features` values for **cases**: `vesa_compatible`, `magconnect` (internal use only — not selectable in Features step)
+
+**Case-mount compatibility rules (enforced in `/api/bundle`):**
+| Case series | VESA / Drill-only mounts | MagConnect |
+|---|---|---|
+| Bold | ✅ | ✅ |
+| Extreme (HTA6024, CWM347MP) | ✅ | ✅ |
+| Slim, Pro, Go, Edge (tablet) | ❌ | ✅ |
+| iPhone (any series) | — | — (no mounts) |
+
+HD mounts (`solution_type: ['Drill Down', 'Adhesive']`) qualify for all case series since the adhesive option is always present regardless of VESA capability.
 
 **`hand_strap` note:** For iPhone accessories (e.g. CPX302 Belt Clip Holster), set `features: ['hand_strap']` in enrichment.ts. The `hand_strap` FeatureId is intentionally NOT selectable by iPhone users in the Features step — it is implied automatically when `carry_style` is `holster` or `hand` in the Environment step. For tablet devices, `hand_strap` remains a selectable feature.
+
+**`screen_protector` note:** Removed from selectable features in `DEVICE_FEATURE_MAP` but retained as a valid FeatureId in enrichment. Accessory scoring and fallback logic in `/api/bundle` still use it to recommend screen protector accessories automatically.
 
 Empty `{}` entries are intentional — they mark known BC SKUs so the bundle route skips runtime Claude inference for them.
 

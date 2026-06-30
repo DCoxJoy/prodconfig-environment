@@ -227,22 +227,6 @@ export async function POST(request: Request) {
       // Results are now in runtimeEnrichmentCache, getEnrichment() picks them up automatically
     }
 
-    // ── Select best mount ──────────────────────────────────────────────────
-    // mount_install from scenarios (wall/desk only). For vehicle/pole, infer from surface:
-    // vehicle always uses AMPs drill-down; pole always uses rail/clamp.
-    const mountInstall: string | undefined =
-      (scenarios as Partial<TabletScenarios>).mount_install
-      ?? (mountSurface === 'vehicle' ? 'drill' : mountSurface === 'pole' ? 'rail' : undefined);
-
-    let selectedMount: (typeof products)[0] | null = null;
-    if (!isIphone && mountSurface && mountSurface !== 'na') {
-      const scored = mounts
-        .map(p => ({ p, score: scoreMount(p.name, p.sku, mountSurface, mountInstall, getSolutionTypes(p.cf)) }))
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score);
-      selectedMount = scored[0]?.p ?? null;
-    }
-
     // ── Select best accessory ──────────────────────────────────────────────
     const scoredAcc = accessories
       .map(p => ({ p, score: scoreAccessory(p.name, p.sku, effectiveFeatures) }))
@@ -265,19 +249,55 @@ export async function POST(request: Request) {
     const sortedCases = [...cases].sort((a, b) => scoreCase(b.sku, features) - scoreCase(a.sku, features));
     const topCases = sortedCases.slice(0, 2);
 
+    // ── Per-case mount selection with case-series compatibility check ───────
+    // mount_install from scenarios (wall/desk only). For vehicle/pole, infer from surface.
+    const mountInstall: string | undefined =
+      (scenarios as Partial<TabletScenarios>).mount_install
+      ?? (mountSurface === 'vehicle' ? 'drill' : mountSurface === 'pole' ? 'rail' : undefined);
+
+    // Each bundle option gets its own compatible mount so that, e.g., a Slim case
+    // is never paired with a drill-only (VESA) mount it can't physically support.
+    // Bold and Extreme cases have VESA mounting holes → full mount pool.
+    // Slim, Pro, Go, Edge → drill-only mounts excluded; adhesive or combo mounts only.
+    // HD mounts (drill+adhesive) qualify for every series since adhesive option is always present.
+    const caseWithMounts = topCases.map(caseProduct => {
+      const caseEnrichment  = getEnrichment(caseProduct.sku);
+      const isVesaCapable   = caseEnrichment.features?.includes('vesa_compatible') ?? false;
+
+      let selectedMount: (typeof products)[0] | null = null;
+      if (!isIphone && mountSurface && mountSurface !== 'na') {
+        const scored = mounts
+          .map(p => {
+            const st = getSolutionTypes(p.cf);
+            // Drill-only = has drill in solution_type but no adhesive option.
+            // These require VESA holes — excluded for non-VESA-capable case series.
+            const isDrillOnly = st.length > 0
+              && st.some(s => s.includes('drill'))
+              && !st.some(s => s.includes('adhesive'));
+            if (isDrillOnly && !isVesaCapable) return { p, score: 0 };
+            return { p, score: scoreMount(p.name, p.sku, mountSurface, mountInstall, st) };
+          })
+          .filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score);
+        selectedMount = scored[0]?.p ?? null;
+      }
+
+      return { caseProduct, selectedMount };
+    });
+
     // ── Collect product IDs we need variant IDs for ────────────────────────
     const selectedIds = [
-      ...topCases.map(c => c.id),
-      ...(selectedMount     ? [selectedMount.id]     : []),
+      ...caseWithMounts.map(x => x.caseProduct.id),
+      ...caseWithMounts.flatMap(x => x.selectedMount ? [x.selectedMount.id] : []),
       ...(selectedAccessory ? [selectedAccessory.id] : []),
     ];
     const variantIds = await getFirstVariantIds([...new Set(selectedIds)]);
 
-    console.log(`[/api/bundle] Built for "${deviceName}": ${topCases.length} case(s), mount=${selectedMount?.sku ?? 'none'}, accessory=${selectedAccessory?.sku ?? 'none'} ("${selectedAccessory?.name ?? ''}")`);
+    console.log(`[/api/bundle] Built for "${deviceName}": ${caseWithMounts.length} case(s), mounts=[${caseWithMounts.map(x => x.selectedMount?.sku ?? 'none').join(', ')}], accessory=${selectedAccessory?.sku ?? 'none'}`);
     console.log(`[/api/bundle] Features sent:`, features);
 
-    // ── Build BundleOption[] — one per case ────────────────────────────────
-    const options: BundleOption[] = topCases.map(caseProduct => {
+    // ── Build BundleOption[] — one per case, each with its own compatible mount ──
+    const options: BundleOption[] = caseWithMounts.map(({ caseProduct, selectedMount }) => {
       const items: BundleItem[] = [
         {
           type:        'Case',
