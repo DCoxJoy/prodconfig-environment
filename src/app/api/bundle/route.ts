@@ -52,7 +52,7 @@ function getSolutionTypes(cf: CfMap): string[] {
 function scoreMount(name: string, sku: string, mountSurface: string, mountInstall?: string, solutionTypes: string[] = []): number {
   const enrichment = getEnrichment(sku);
   if (enrichment.mount_surface !== undefined) {
-    if (enrichment.mount_surface !== mountSurface) return 0;
+    if (!enrichment.mount_surface.includes(mountSurface as 'wall' | 'vehicle' | 'desk' | 'pole' | 'na')) return 0;
     // bundle_priority: lower number = higher rank. Priority 1 → +0.9, priority 2 → +0.8, none → +0
     const priorityBonus = enrichment.bundle_priority ? (10 - enrichment.bundle_priority) * 0.1 : 0;
     let score = 10 + priorityBonus;
