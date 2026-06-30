@@ -42,7 +42,11 @@ const MOUNT_SURFACE_KEYWORDS: Record<string, string[]> = {
   pole:    ['tripod', 'mic stand', 'pole'],
 };
 
-function getSolutionTypes(cf: CfMap): string[] {
+function getSolutionTypes(cf: CfMap, sku?: string): string[] {
+  if (sku) {
+    const override = getEnrichment(sku).solution_type_override;
+    if (override && override.length > 0) return override;
+  }
   const raw = cf.solution_type;
   if (!raw) return [];
   const values = Array.isArray(raw) ? raw : [raw as string];
@@ -268,7 +272,7 @@ export async function POST(request: Request) {
       if (!isIphone && mountSurface && mountSurface !== 'na') {
         const scored = mounts
           .map(p => {
-            const st = getSolutionTypes(p.cf);
+            const st = getSolutionTypes(p.cf, p.sku);
             // Drill-only = has drill in solution_type but no adhesive option.
             // These require VESA holes — excluded for non-VESA-capable case series.
             const isDrillOnly = st.length > 0

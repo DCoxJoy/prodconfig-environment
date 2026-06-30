@@ -7,6 +7,9 @@ export interface ProductEnrichment {
   features?: FeatureId[];
   series?: 'Extreme' | 'Bold' | 'Slim' | 'Edge' | 'Standard' | 'Pro' | 'Go';
   bundle_priority?: number;
+  // Override BC solution_type for scoring — use when BC field is missing or incorrect.
+  // Values must match BC solution_type vocabulary: 'drill down', 'adhesive', 'rail/pole'.
+  solution_type_override?: string[];
 }
 
 // In-memory cache for runtime Claude-inferred enrichment (fills gaps for SKUs not in static map).
@@ -53,11 +56,14 @@ export const PRODUCT_ENRICHMENT: Record<string, ProductEnrichment> = {
   'KKX110B':   {},
   'MMU332':    { mount_surface: ['vehicle', 'desk'], bundle_priority: 1 },
   'MMU331':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1 },
-  'MVU332':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1 },
+  // VESA mounts — drill-only (no adhesive). solution_type_override ensures drill preference wins
+  // over HD (drill+adhesive) mounts regardless of whether BC has solution_type set.
+  'MVU332':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1, solution_type_override: ['drill down'] },
   'MMU231':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1 },
   'MMU230':    { mount_surface: ['pole'],            bundle_priority: 1 },
   'MMU232':    { mount_surface: ['vehicle', 'desk'], bundle_priority: 1 },
-  'MVU232':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1 },
+  'MVU232':    { mount_surface: ['wall', 'desk'],    bundle_priority: 1, solution_type_override: ['drill down'] },
+  'RVU101':    { mount_surface: ['wall'],            bundle_priority: 1, solution_type_override: ['drill down'] },
   // Bold — VESA + MagConnect compatible
   'CWA302MP':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 1 },
   'MWA336MP':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 2 },
