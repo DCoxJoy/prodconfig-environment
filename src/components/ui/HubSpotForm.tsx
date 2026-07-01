@@ -52,17 +52,25 @@ export default function HubSpotForm({
         target: `#${containerId.current}`,
 
         onFormReady: () => {
-          // Inject values after the form HTML is in the DOM.
-          // Queries both input and textarea. No event dispatch — setting .value
-          // directly is enough for HubSpot to read on submit, and avoids
-          // triggering its validation pipeline prematurely.
-          if (!containerRef.current) return;
-          for (const [name, value] of Object.entries(hiddenFieldsRef.current)) {
-            const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-              `input[name="${name}"], textarea[name="${name}"]`
-            );
-            if (el) el.value = value;
-          }
+          // HubSpot does async setup after onFormReady and resets field values.
+          // 300ms gives it time to finish before we inject. We also use the
+          // native prototype setter + input event so React's internal state
+          // stays in sync with the DOM value we're setting.
+          setTimeout(() => {
+            if (!containerRef.current) return;
+            for (const [name, value] of Object.entries(hiddenFieldsRef.current)) {
+              const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                `input[name="${name}"], textarea[name="${name}"]`
+              );
+              if (!el) continue;
+              const proto = (el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement).prototype;
+              const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+              if (nativeSetter) {
+                nativeSetter.call(el, value);
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
+          }, 300);
         },
 
         onFormSubmit: () => {
