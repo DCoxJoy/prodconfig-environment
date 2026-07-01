@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import { IconSend, IconShield, IconInfoCircle, IconAlertCircle } from '@tabler/icons-react';
-import HubSpotForm from '../ui/HubSpotForm';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
-
-const HS_PORTAL_ID = '20662622';
-const HS_FORM_ID   = 'ba721aec-670d-456f-b004-c8434e9e3170';
 
 interface StepContactProps {
   source: 'certified' | 'escalation' | 'manual';
@@ -14,37 +10,71 @@ interface StepContactProps {
   onBack: () => void;
 }
 
+const INPUT =
+  'w-full border border-stone-200 rounded-lg px-3 py-2.5 text-[14px] text-stone-900 bg-white ' +
+  'focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors placeholder:text-stone-300';
+
+const LABEL = 'block text-[11px] font-semibold text-stone-500 mb-1';
+
 export default function StepContact({ source, escalationRequest, onBack }: StepContactProps) {
   const { state, liveProducts, qtys } = useConfigurator();
   const { device } = state;
 
-  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    firstname: '', lastname: '', company: '', industry: '',
+    email: '', phone: '', notes: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted,  setSubmitted]  = useState(false);
+  const [error,      setError]      = useState('');
 
   const showBundle = source === 'escalation' || source === 'manual';
   const total      = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
   const hasZeroed  = qtys.some(q => q === 0);
 
-  // Build the bundle context that goes into the hidden message field.
-  const summaryLines: string[] = [`Device: ${device?.name ?? '—'}`];
-  if (source === 'escalation' && escalationRequest) {
-    summaryLines.push(`AI request: "${escalationRequest}"`);
+  function setField(key: keyof typeof form, val: string) {
+    setForm(f => ({ ...f, [key]: val }));
   }
-  if (showBundle && liveProducts.length > 0) {
-    summaryLines.push('', 'Recommended bundle:');
-    liveProducts.forEach((p, i) => {
-      const excluded = qtys[i] === 0;
-      summaryLines.push(`  ${p.type}: ${p.name} (${p.sku})${excluded ? ' [excluded]' : ` ×${qtys[i]}`}`);
-    });
-    summaryLines.push(`  Sub-total: $${total.toFixed(2)}`);
-  }
-  summaryLines.push('', '---', '');
 
-  // Passed to HubSpotForm as hiddenFieldValues — HubSpot's native pre-fill
-  // mechanism. The message field must be marked hidden in the HubSpot form
-  // editor for this to be included in the submission.
-  const hiddenFieldValues: Record<string, string> = {
-    message: summaryLines.join('\n'),
-  };
+  function buildMessage() {
+    const lines: string[] = [`Device: ${device?.name ?? '—'}`];
+    if (source === 'escalation' && escalationRequest) {
+      lines.push(`AI request: "${escalationRequest}"`);
+    }
+    if (showBundle && liveProducts.length > 0) {
+      lines.push('', 'Recommended bundle:');
+      liveProducts.forEach((p, i) => {
+        const excluded = qtys[i] === 0;
+        lines.push(`  ${p.type}: ${p.name} (${p.sku})${excluded ? ' [excluded]' : ` ×${qtys[i]}`}`);
+      });
+      lines.push(`  Sub-total: $${total.toFixed(2)}`);
+    }
+    lines.push('', '---', '');
+    if (form.notes.trim()) lines.push('Customer notes:', form.notes.trim());
+    return lines.join('\n');
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, message: buildMessage() }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? 'Something went wrong. Please try again.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    }
+    setSubmitting(false);
+  }
 
   /* ── Success state ─────────────────────────────────────────────────────── */
   if (submitted) {
@@ -135,13 +165,88 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
         </div>
       )}
 
-      {/* ── HubSpot embedded form ────────────────────────────────────────── */}
-      <HubSpotForm
-        portalId={HS_PORTAL_ID}
-        formId={HS_FORM_ID}
-        hiddenFieldValues={hiddenFieldValues}
-        onSubmitted={() => setSubmitted(true)}
-      />
+      {/* ── Contact form ─────────────────────────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>First name *</label>
+            <input
+              type="text" required value={form.firstname}
+              onChange={e => setField('firstname', e.target.value)}
+              className={INPUT} placeholder="Jane"
+            />
+          </div>
+          <div>
+            <label className={LABEL}>Last name *</label>
+            <input
+              type="text" required value={form.lastname}
+              onChange={e => setField('lastname', e.target.value)}
+              className={INPUT} placeholder="Smith"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className={LABEL}>Company *</label>
+          <input
+            type="text" required value={form.company}
+            onChange={e => setField('company', e.target.value)}
+            className={INPUT} placeholder="Acme Corp"
+          />
+        </div>
+
+        <div>
+          <label className={LABEL}>Industry</label>
+          <input
+            type="text" value={form.industry}
+            onChange={e => setField('industry', e.target.value)}
+            className={INPUT} placeholder="e.g. Healthcare, Construction…"
+          />
+        </div>
+
+        <div>
+          <label className={LABEL}>Email *</label>
+          <input
+            type="email" required value={form.email}
+            onChange={e => setField('email', e.target.value)}
+            className={INPUT} placeholder="jane@company.com"
+          />
+        </div>
+
+        <div>
+          <label className={LABEL}>Phone</label>
+          <input
+            type="tel" value={form.phone}
+            onChange={e => setField('phone', e.target.value)}
+            className={INPUT} placeholder="+1 (555) 000-0000"
+          />
+        </div>
+
+        <div>
+          <label className={LABEL}>Additional notes</label>
+          <textarea
+            rows={3} value={form.notes}
+            onChange={e => setField('notes', e.target.value)}
+            className={INPUT + ' resize-none'}
+            placeholder="Anything else we should know…"
+          />
+        </div>
+
+        {error && (
+          <p className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full flex items-center justify-center gap-2 bg-brand text-white rounded-xl py-3 text-[14px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <IconSend size={15} />
+          {submitting ? 'Sending…' : 'Send request'}
+        </button>
+      </form>
 
       <button
         onClick={onBack}
