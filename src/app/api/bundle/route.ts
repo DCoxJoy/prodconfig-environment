@@ -249,9 +249,26 @@ export async function POST(request: Request) {
       if (!selectedAccessory && accessories.length > 0) selectedAccessory = accessories[0];
     }
 
-    // ── Sort cases by enrichment score ─────────────────────────────────────
+    // ── Sort cases by enrichment score, ensuring series diversity ──────────
+    // Without diversity, high-scoring ruggedness features cause all top cases to
+    // be Bold variants (same series). Force options 1 and 2 to be different series
+    // so the two bundle options always show meaningfully different case choices.
     const sortedCases = [...cases].sort((a, b) => scoreCase(b.sku, features) - scoreCase(a.sku, features));
-    const topCases = sortedCases.slice(0, 2);
+    const topCases: typeof cases = [];
+    const usedSeries = new Set<string>();
+    for (const c of sortedCases) {
+      if (topCases.length >= 2) break;
+      const series = getEnrichment(c.sku).series ?? `__unknown_${c.sku}`;
+      if (!usedSeries.has(series)) {
+        topCases.push(c);
+        usedSeries.add(series);
+      }
+    }
+    // If we still have fewer than 2 (all same series or only 1 case), fill from remainder
+    for (const c of sortedCases) {
+      if (topCases.length >= 2) break;
+      if (!topCases.includes(c)) topCases.push(c);
+    }
 
     // ── Per-case mount selection with case-series compatibility check ───────
     // mount_install from scenarios (wall/desk only). For vehicle/pole, infer from surface.
