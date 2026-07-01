@@ -1,0 +1,100 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+
+declare global {
+  interface Window {
+    hbspt?: {
+      forms: { create: (config: Record<string, unknown>) => void };
+    };
+  }
+}
+
+export interface HubSpotFormProps {
+  portalId: string;
+  formId: string;
+  region?: string;
+  hiddenFields?: Record<string, string>;
+  onBeforeSubmit?: (email: string) => void;
+  onSubmitted?: () => void;
+}
+
+export default function HubSpotForm({
+  portalId,
+  formId,
+  region = 'na1',
+  hiddenFields = {},
+  onBeforeSubmit,
+  onSubmitted,
+}: HubSpotFormProps) {
+  const containerRef   = useRef<HTMLDivElement>(null);
+  const initialized    = useRef(false);
+  // Refs so callbacks are never stale inside the HubSpot event handlers
+  const hiddenFieldsRef = useRef(hiddenFields);
+  const callbacksRef    = useRef({ onBeforeSubmit, onSubmitted });
+  hiddenFieldsRef.current = hiddenFields;
+  callbacksRef.current    = { onBeforeSubmit, onSubmitted };
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    function create() {
+      if (!window.hbspt || !containerRef.current) return;
+
+      window.hbspt.forms.create({
+        portalId,
+        formId,
+        region,
+        target: containerRef.current,
+
+        onFormReady: () => {
+          // Inject hidden field values after the form HTML is in the DOM.
+          // Fields must exist in the HubSpot form definition to appear here.
+          if (!containerRef.current) return;
+          for (const [name, value] of Object.entries(hiddenFieldsRef.current)) {
+            const el = containerRef.current.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+            if (el) {
+              el.value = value;
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        },
+
+        onFormSubmit: () => {
+          // Capture email before the form clears on submission.
+          const email =
+            containerRef.current
+              ?.querySelector<HTMLInputElement>('input[name="email"]')
+              ?.value ?? '';
+          callbacksRef.current.onBeforeSubmit?.(email);
+        },
+
+        onFormSubmitted: () => {
+          callbacksRef.current.onSubmitted?.();
+        },
+      });
+    }
+
+    // HubSpot script already loaded (e.g. another form on the same page)
+    if (window.hbspt) { create(); return; }
+
+    // Script tag exists but hasn't finished loading — poll
+    if (document.querySelector('script[src*="js.hsforms.net"]')) {
+      const poll = setInterval(() => {
+        if (window.hbspt) { clearInterval(poll); create(); }
+      }, 50);
+      return () => clearInterval(poll);
+    }
+
+    // Load the script for the first time
+    const script = document.createElement('script');
+    script.src = '//js.hsforms.net/forms/embed/v2.js';
+    script.charset = 'utf-8';
+    script.async = true;
+    script.addEventListener('load', create);
+    document.body.appendChild(script);
+  }, []); // intentionally empty — form is created once on mount
+
+  return <div ref={containerRef} />;
+}

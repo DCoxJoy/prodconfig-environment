@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { IconSend, IconShield, IconInfoCircle, IconAlertCircle } from '@tabler/icons-react';
+import HubSpotForm from '../ui/HubSpotForm';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { HubSpotPayload } from '../../types';
+
+const HS_PORTAL_ID = '20662622';
+const HS_FORM_ID   = 'ba721aec-670d-456f-b004-c8434e9e3170';
 
 interface StepContactProps {
   source: 'certified' | 'escalation' | 'manual';
@@ -15,29 +19,27 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
   const { state, liveProducts, qtys } = useConfigurator();
   const { device, certified, features, scenarios, appliedEdits } = state;
 
-  const [firstName,     setFirstName]     = useState('');
-  const [lastName,      setLastName]      = useState('');
-  const [email,         setEmail]         = useState('');
-  const [company,       setCompany]       = useState('');
-  const [certification, setCertification] = useState('');
-  const [notes,         setNotes]         = useState(
-    source === 'escalation'
-      ? `"${escalationRequest}" — no exact SKU match found, requesting specialist review.`
-      : ''
-  );
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted,  setSubmitted]  = useState(false);
-  const [error,      setError]      = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const capturedEmail = useRef('');
 
   const showBundle = source === 'escalation' || source === 'manual';
   const total      = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
   const hasZeroed  = qtys.some(q => q === 0);
 
-  async function handleSubmit() {
-    if (!firstName || !email) return;
-    setSubmitting(true);
-    setError('');
+  // Hidden fields injected into the HubSpot form on render.
+  // lead_source is already set to "Web" in the HubSpot form definition — no override needed.
+  // device_model and bundle_skus require matching hidden fields in the HubSpot form definition.
+  const hiddenFields: Record<string, string> = {
+    device_model: device?.name ?? '',
+    bundle_skus:  liveProducts.map(p => p.sku).join(', '),
+  };
 
+  async function handleSubmitted() {
+    setSubmitted(true);
+
+    // Create a HubSpot deal with full bundle context.
+    // Contact was already created by the form submission — the API route
+    // searches by email to find it and associates the deal.
     const path: HubSpotPayload['path'] = source === 'certified'
       ? 'certified_case_inquiry'
       : 'contact_sales_from_bundle';
@@ -53,25 +55,19 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
       })),
       bundle_total: total,
       ai_edits:    appliedEdits.filter(e => e.matched).map(e => e.text),
-      contact:     { first_name: firstName, last_name: lastName, email, company },
+      contact: capturedEmail.current
+        ? { first_name: '', last_name: '', email: capturedEmail.current, company: '' }
+        : undefined,
     };
 
     try {
-      const res  = await fetch('/api/hubspot', {
+      await fetch('/api/hubspot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) {
-        setSubmitted(true);
-      } else {
-        setError(data.error ?? 'Submission failed. Please try again.');
-      }
     } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setSubmitting(false);
+      // Deal creation is best-effort — form submission already succeeded
     }
   }
 
@@ -89,9 +85,6 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
       </div>
     );
   }
-
-  const inputCls = 'w-full border border-stone-200 rounded-xl px-4 py-3 text-[13px] text-stone-900 bg-white focus:outline-none focus:border-brand font-sans placeholder:text-stone-400 transition-colors';
-  const labelCls = 'block text-[12px] font-semibold text-stone-700 mb-1.5';
 
   return (
     <div className="px-6 py-6">
@@ -167,61 +160,14 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
         </div>
       )}
 
-      {/* ── Contact form ───────────────────────────────────────────────── */}
-      <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-widest mb-4">Your details</div>
-
-      <div className="mb-4">
-        <label className={labelCls}>Full name</label>
-        <div className="grid grid-cols-2 gap-3">
-          <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jane"  className={inputCls} />
-          <input value={lastName}  onChange={e => setLastName(e.target.value)}  placeholder="Smith" className={inputCls} />
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <label className={labelCls}>Work email</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@company.com" className={inputCls} />
-      </div>
-
-      <div className="mb-4">
-        <label className={labelCls}>Company</label>
-        <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Company name" className={inputCls} />
-      </div>
-
-      {source === 'certified' && (
-        <div className="mb-4">
-          <label className={labelCls}>Certification needed <span className="font-normal text-stone-400">(optional)</span></label>
-          <input value={certification} onChange={e => setCertification(e.target.value)} placeholder="e.g. Class I Division 2" className={inputCls} />
-        </div>
-      )}
-
-      {source === 'escalation' && (
-        <div className="mb-4">
-          <label className={labelCls}>Additional notes for the sales team</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={3}
-            className="w-full border border-stone-200 rounded-xl px-4 py-3 text-[13px] text-stone-600 bg-stone-50 resize-none leading-relaxed focus:outline-none font-sans"
-          />
-        </div>
-      )}
-
-      {error && (
-        <div className="text-[12px] text-red-600 mb-3 px-1">{error}</div>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || !firstName || !email}
-        className={[
-          'w-full border-none rounded-xl py-3.5 text-[14px] font-semibold text-white cursor-pointer flex items-center justify-center gap-2 transition-colors',
-          submitting || !firstName || !email ? 'bg-stone-300 cursor-not-allowed' : 'bg-brand hover:bg-[#a8221a]',
-        ].join(' ')}
-      >
-        <IconSend size={15} />
-        {submitting ? 'Submitting…' : 'Submit to sales team'}
-      </button>
+      {/* ── HubSpot embedded form ────────────────────────────────────────── */}
+      <HubSpotForm
+        portalId={HS_PORTAL_ID}
+        formId={HS_FORM_ID}
+        hiddenFields={hiddenFields}
+        onBeforeSubmit={email => { capturedEmail.current = email; }}
+        onSubmitted={handleSubmitted}
+      />
 
       <button
         onClick={onBack}

@@ -36,7 +36,6 @@ export const DEVICE_GROUPS: DeviceGroup[] = [
       { id: 'surface_pro_13_11th', name: 'Surface Pro 13" (11th Ed)', family: 'surface' },
       { id: 'surface_pro_10',      name: 'Surface Pro 10',            family: 'surface' },
       { id: 'surface_pro_10_5g',   name: 'Surface Pro 10 (5G)',       family: 'surface' },
-      { id: 'surface_pro_9',       name: 'Surface Pro 9',             family: 'surface' },
       { id: 'surface_pro_12',      name: 'Surface Pro 12"',           family: 'surface' },
       { id: 'surface_go_4',        name: 'Surface Go 4',              family: 'surface' },
     ],

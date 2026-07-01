@@ -24,48 +24,63 @@ export async function POST(request: Request) {
     const payload: HubSpotPayload = await request.json();
     const { path, device, bundle, bundle_total, ai_edits, contact } = payload;
 
-    // Create or upsert contact
+    // Resolve contact ID — search by email first to avoid creating duplicates.
+    // When the HubSpot form has already submitted, the contact exists and we
+    // just need the ID to associate the deal. If not found, create it.
     let contactId: string | undefined;
-    if (contact) {
-      const contactBody = {
-        properties: {
-          firstname: contact.first_name,
-          lastname: contact.last_name,
-          email: contact.email,
-          company: contact.company,
-        },
-      };
-      const contactRes = await hsPost('/crm/v3/objects/contacts', contactBody);
-      contactId = contactRes.id as string;
+    if (contact?.email) {
+      try {
+        const searchRes = await hsPost('/crm/v3/objects/contacts/search', {
+          filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: contact.email }] }],
+          limit: 1,
+          properties: ['id'],
+        });
+        if (searchRes.results?.length > 0) {
+          contactId = searchRes.results[0].id as string;
+        }
+      } catch {
+        // Search failed — fall through to creation attempt
+      }
+
+      if (!contactId && contact.first_name) {
+        // Contact not in HubSpot yet (standalone CRM path, not via form embed)
+        const contactRes = await hsPost('/crm/v3/objects/contacts', {
+          properties: {
+            firstname: contact.first_name,
+            lastname:  contact.last_name,
+            email:     contact.email,
+            company:   contact.company,
+          },
+        });
+        contactId = contactRes.id as string;
+      }
     }
 
     // Deal name based on path
     const dealNameMap: Record<string, string> = {
-      certified_case_inquiry: `Certified Case Inquiry — ${device}`,
-      contact_sales_from_bundle: `Bundle Inquiry — ${device}`,
-      purchase_now: `Purchase — ${device}`,
+      certified_case_inquiry:     `Certified Case Inquiry — ${device}`,
+      contact_sales_from_bundle:  `Bundle Inquiry — ${device}`,
+      purchase_now:               `Purchase — ${device}`,
     };
 
     const bundleSkus = bundle.map(item => item.sku).join(', ');
 
-    const dealBody = {
+    const dealRes = await hsPost('/crm/v3/objects/deals', {
       properties: {
-        dealname: dealNameMap[path] ?? `Joy Factory Inquiry — ${device}`,
-        pipeline: 'default',
-        dealstage: 'appointmentscheduled',
-        device_model: device,
-        bundle_skus: bundleSkus,
-        bundle_total: String(bundle_total),
-        certified_inquiry: String(path === 'certified_case_inquiry'),
+        dealname:           dealNameMap[path] ?? `Joy Factory Inquiry — ${device}`,
+        pipeline:           'default',
+        dealstage:          'appointmentscheduled',
+        device_model:       device,
+        bundle_skus:        bundleSkus,
+        bundle_total:       String(bundle_total),
+        certified_inquiry:  String(path === 'certified_case_inquiry'),
         ai_edits_requested: ai_edits.join(' | ') || 'none',
-        amount: String(bundle_total),
+        amount:             String(bundle_total),
       },
-    };
-
-    const dealRes = await hsPost('/crm/v3/objects/deals', dealBody);
+    });
     const dealId = dealRes.id as string;
 
-    // Associate contact to deal if we have both
+    // Associate contact ↔ deal
     if (contactId && dealId) {
       await fetch(
         `${HS_BASE}/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}/labels`,
