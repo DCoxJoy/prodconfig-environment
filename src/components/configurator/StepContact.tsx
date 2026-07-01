@@ -1,10 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { IconSend, IconShield, IconInfoCircle, IconAlertCircle } from '@tabler/icons-react';
 import HubSpotForm from '../ui/HubSpotForm';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
-import { HubSpotPayload } from '../../types';
 
 const HS_PORTAL_ID = '20662622';
 const HS_FORM_ID   = 'ba721aec-670d-456f-b004-c8434e9e3170';
@@ -17,58 +16,36 @@ interface StepContactProps {
 
 export default function StepContact({ source, escalationRequest, onBack }: StepContactProps) {
   const { state, liveProducts, qtys } = useConfigurator();
-  const { device, certified, features, scenarios, appliedEdits } = state;
+  const { device } = state;
 
   const [submitted, setSubmitted] = useState(false);
-  const capturedEmail = useRef('');
 
   const showBundle = source === 'escalation' || source === 'manual';
   const total      = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
   const hasZeroed  = qtys.some(q => q === 0);
 
-  // Hidden fields injected into the HubSpot form on render.
-  // lead_source is already set to "Web" in the HubSpot form definition — no override needed.
-  // device_model and bundle_skus require matching hidden fields in the HubSpot form definition.
+  // Pre-populate the message field with bundle context so it appears in the
+  // HubSpot notification email. User can add their own message below the summary.
+  const summaryLines: string[] = [`Device: ${device?.name ?? '—'}`];
+  if (source === 'escalation' && escalationRequest) {
+    summaryLines.push(`AI request: "${escalationRequest}"`);
+  }
+  if (showBundle && liveProducts.length > 0) {
+    summaryLines.push('', 'Recommended bundle:');
+    liveProducts.forEach((p, i) => {
+      const excluded = qtys[i] === 0;
+      summaryLines.push(`  ${p.type}: ${p.name} (${p.sku})${excluded ? ' [excluded]' : ` ×${qtys[i]}`}`);
+    });
+    summaryLines.push(`  Sub-total: $${total.toFixed(2)}`);
+  }
+  summaryLines.push('', '---', '');
+
   const hiddenFields: Record<string, string> = {
-    device_model: device?.name ?? '',
-    bundle_skus:  liveProducts.map(p => p.sku).join(', '),
+    message: summaryLines.join('\n'),
   };
 
-  async function handleSubmitted() {
+  function handleSubmitted() {
     setSubmitted(true);
-
-    // Create a HubSpot deal with full bundle context.
-    // Contact was already created by the form submission — the API route
-    // searches by email to find it and associates the deal.
-    const path: HubSpotPayload['path'] = source === 'certified'
-      ? 'certified_case_inquiry'
-      : 'contact_sales_from_bundle';
-
-    const payload: HubSpotPayload = {
-      path,
-      device:            device?.name ?? '',
-      certified:         certified === 'yes',
-      features_selected: features,
-      environment:       scenarios,
-      bundle: liveProducts.map((p, i) => ({
-        type: p.type, name: p.name, sku: p.sku, qty: qtys[i], unit_price: p.unitPrice,
-      })),
-      bundle_total: total,
-      ai_edits:    appliedEdits.filter(e => e.matched).map(e => e.text),
-      contact: capturedEmail.current
-        ? { first_name: '', last_name: '', email: capturedEmail.current, company: '' }
-        : undefined,
-    };
-
-    try {
-      await fetch('/api/hubspot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      // Deal creation is best-effort — form submission already succeeded
-    }
   }
 
   /* ── Success state ─────────────────────────────────────────────────────── */
@@ -165,7 +142,6 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
         portalId={HS_PORTAL_ID}
         formId={HS_FORM_ID}
         hiddenFields={hiddenFields}
-        onBeforeSubmit={email => { capturedEmail.current = email; }}
         onSubmitted={handleSubmitted}
       />
 

@@ -19,6 +19,8 @@ export interface HubSpotFormProps {
   onSubmitted?: () => void;
 }
 
+let hsFormCounter = 0;
+
 export default function HubSpotForm({
   portalId,
   formId,
@@ -27,6 +29,7 @@ export default function HubSpotForm({
   onBeforeSubmit,
   onSubmitted,
 }: HubSpotFormProps) {
+  const containerId    = useRef(`hs-form-${++hsFormCounter}`);
   const containerRef   = useRef<HTMLDivElement>(null);
   const initialized    = useRef(false);
   // Refs so callbacks are never stale inside the HubSpot event handlers
@@ -46,7 +49,7 @@ export default function HubSpotForm({
         portalId,
         formId,
         region,
-        target: containerRef.current,
+        target: `#${containerId.current}`,
 
         onFormReady: () => {
           // Inject hidden field values after the form HTML is in the DOM.
@@ -96,5 +99,5 @@ export default function HubSpotForm({
     document.body.appendChild(script);
   }, []); // intentionally empty — form is created once on mount
 
-  return <div ref={containerRef} />;
+  return <div id={containerId.current} ref={containerRef} />;
 }
