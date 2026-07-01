@@ -14,38 +14,24 @@ export interface HubSpotFormProps {
   portalId: string;
   formId: string;
   region?: string;
-  hiddenFields?: Record<string, string>;
-  onBeforeSubmit?: (email: string) => void;
+  hiddenFieldValues?: Record<string, string>;
   onSubmitted?: () => void;
 }
 
 let hsFormCounter = 0;
 
-function writeField(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
-  const proto = (el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement).prototype;
-  const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-  if (nativeSetter) {
-    nativeSetter.call(el, value);
-    el.dispatchEvent(new Event('input',  { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-}
-
 export default function HubSpotForm({
   portalId,
   formId,
   region = 'na1',
-  hiddenFields = {},
-  onBeforeSubmit,
+  hiddenFieldValues = {},
   onSubmitted,
 }: HubSpotFormProps) {
-  const containerId     = useRef(`hs-form-${++hsFormCounter}`);
-  const containerRef    = useRef<HTMLDivElement>(null);
-  const initialized     = useRef(false);
-  const hiddenFieldsRef = useRef(hiddenFields);
-  const callbacksRef    = useRef({ onBeforeSubmit, onSubmitted });
-  hiddenFieldsRef.current = hiddenFields;
-  callbacksRef.current    = { onBeforeSubmit, onSubmitted };
+  const containerId  = useRef(`hs-form-${++hsFormCounter}`);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const initialized  = useRef(false);
+  const callbacksRef = useRef({ onSubmitted });
+  callbacksRef.current = { onSubmitted };
 
   useEffect(() => {
     if (initialized.current) return;
@@ -59,37 +45,10 @@ export default function HubSpotForm({
         formId,
         region,
         target: `#${containerId.current}`,
-
-        onFormSubmit: () => {
-          // onFormSubmit fires synchronously before HubSpot serializes and
-          // POSTs the form — this is the only reliable injection point.
-          // For the message field we prepend bundle context to any user text;
-          // all other hiddenFields are written directly.
-          if (!containerRef.current) return;
-
-          const fields = hiddenFieldsRef.current;
-          const msgValue = fields['message'];
-
-          if (msgValue) {
-            const msgEl = containerRef.current.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
-            if (msgEl) {
-              const userText = msgEl.value.trim();
-              writeField(msgEl, userText ? `${msgValue}\n\nCustomer notes:\n${userText}` : msgValue);
-            }
-          }
-
-          for (const [name, value] of Object.entries(fields)) {
-            if (name === 'message') continue;
-            const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-              `input[name="${name}"], textarea[name="${name}"]`
-            );
-            if (el) writeField(el, value);
-          }
-
-          const email = containerRef.current
-            .querySelector<HTMLInputElement>('input[name="email"]')?.value ?? '';
-          callbacksRef.current.onBeforeSubmit?.(email);
-        },
+        // hiddenFieldValues is HubSpot's native pre-fill mechanism.
+        // It sets field values through HubSpot's own internals before
+        // submission, so it works even when reCAPTCHA is enabled.
+        hiddenFieldValues,
 
         onFormSubmitted: () => {
           callbacksRef.current.onSubmitted?.();
