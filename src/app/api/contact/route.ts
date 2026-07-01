@@ -5,7 +5,7 @@ const HS_FORM_ID   = 'ba721aec-670d-456f-b004-c8434e9e3170';
 
 export async function POST(request: Request) {
   try {
-    const { firstname, lastname, email, company, industry, region_name, phone, message } = await request.json();
+    const { firstname, lastname, email, company, industry, phone, message } = await request.json();
 
     const res = await fetch(
       `https://api.hsforms.com/submissions/v3/integration/submit/${HS_PORTAL_ID}/${HS_FORM_ID}`,
@@ -14,14 +14,13 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fields: [
-            { name: 'firstname',   value: firstname    ?? '' },
-            { name: 'lastname',    value: lastname     ?? '' },
-            { name: 'email',       value: email        ?? '' },
-            { name: 'company',     value: company      ?? '' },
-            { name: 'industry',    value: industry     ?? '' },
-            { name: 'region_name', value: region_name  ?? '' },
-            { name: 'phone',       value: phone        ?? '' },
-            { name: 'message',     value: message      ?? '' },
+            { name: 'firstname', value: firstname ?? '' },
+            { name: 'lastname',  value: lastname  ?? '' },
+            { name: 'email',     value: email     ?? '' },
+            { name: 'company',   value: company   ?? '' },
+            { name: 'industry',  value: industry  ?? '' },
+            { name: 'phone',     value: phone     ?? '' },
+            { name: 'message',   value: message   ?? '' },
           ],
           context: {
             pageUri:  'https://configurator.joyfactory.com',
