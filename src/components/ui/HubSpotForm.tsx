@@ -52,15 +52,16 @@ export default function HubSpotForm({
         target: `#${containerId.current}`,
 
         onFormReady: () => {
-          // Inject hidden field values after the form HTML is in the DOM.
-          // Fields must exist in the HubSpot form definition to appear here.
+          // Inject values after the form HTML is in the DOM.
+          // Queries both input and textarea. No event dispatch — setting .value
+          // directly is enough for HubSpot to read on submit, and avoids
+          // triggering its validation pipeline prematurely.
           if (!containerRef.current) return;
           for (const [name, value] of Object.entries(hiddenFieldsRef.current)) {
-            const el = containerRef.current.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-            if (el) {
-              el.value = value;
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+            const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+              `input[name="${name}"], textarea[name="${name}"]`
+            );
+            if (el) el.value = value;
           }
         },
 

@@ -24,8 +24,6 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
   const total      = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
   const hasZeroed  = qtys.some(q => q === 0);
 
-  // Pre-populate the message field with bundle context so it appears in the
-  // HubSpot notification email. User can add their own message below the summary.
   const summaryLines: string[] = [`Device: ${device?.name ?? '—'}`];
   if (source === 'escalation' && escalationRequest) {
     summaryLines.push(`AI request: "${escalationRequest}"`);
