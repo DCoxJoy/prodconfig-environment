@@ -21,6 +21,16 @@ export interface HubSpotFormProps {
 
 let hsFormCounter = 0;
 
+function writeField(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const proto = (el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement).prototype;
+  const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+  if (nativeSetter) {
+    nativeSetter.call(el, value);
+    el.dispatchEvent(new Event('input',  { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
 export default function HubSpotForm({
   portalId,
   formId,
@@ -29,10 +39,9 @@ export default function HubSpotForm({
   onBeforeSubmit,
   onSubmitted,
 }: HubSpotFormProps) {
-  const containerId    = useRef(`hs-form-${++hsFormCounter}`);
-  const containerRef   = useRef<HTMLDivElement>(null);
-  const initialized    = useRef(false);
-  // Refs so callbacks are never stale inside the HubSpot event handlers
+  const containerId     = useRef(`hs-form-${++hsFormCounter}`);
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const initialized     = useRef(false);
   const hiddenFieldsRef = useRef(hiddenFields);
   const callbacksRef    = useRef({ onBeforeSubmit, onSubmitted });
   hiddenFieldsRef.current = hiddenFields;
@@ -51,34 +60,34 @@ export default function HubSpotForm({
         region,
         target: `#${containerId.current}`,
 
-        onFormReady: () => {
-          // HubSpot does async setup after onFormReady and resets field values.
-          // 300ms gives it time to finish before we inject. We also use the
-          // native prototype setter + input event so React's internal state
-          // stays in sync with the DOM value we're setting.
-          setTimeout(() => {
-            if (!containerRef.current) return;
-            for (const [name, value] of Object.entries(hiddenFieldsRef.current)) {
-              const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-                `input[name="${name}"], textarea[name="${name}"]`
-              );
-              if (!el) continue;
-              const proto = (el instanceof HTMLTextAreaElement ? HTMLTextAreaElement : HTMLInputElement).prototype;
-              const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-              if (nativeSetter) {
-                nativeSetter.call(el, value);
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-            }
-          }, 300);
-        },
-
         onFormSubmit: () => {
-          // Capture email before the form clears on submission.
-          const email =
-            containerRef.current
-              ?.querySelector<HTMLInputElement>('input[name="email"]')
-              ?.value ?? '';
+          // onFormSubmit fires synchronously before HubSpot serializes and
+          // POSTs the form — this is the only reliable injection point.
+          // For the message field we prepend bundle context to any user text;
+          // all other hiddenFields are written directly.
+          if (!containerRef.current) return;
+
+          const fields = hiddenFieldsRef.current;
+          const msgValue = fields['message'];
+
+          if (msgValue) {
+            const msgEl = containerRef.current.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
+            if (msgEl) {
+              const userText = msgEl.value.trim();
+              writeField(msgEl, userText ? `${msgValue}\n\nCustomer notes:\n${userText}` : msgValue);
+            }
+          }
+
+          for (const [name, value] of Object.entries(fields)) {
+            if (name === 'message') continue;
+            const el = containerRef.current.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+              `input[name="${name}"], textarea[name="${name}"]`
+            );
+            if (el) writeField(el, value);
+          }
+
+          const email = containerRef.current
+            .querySelector<HTMLInputElement>('input[name="email"]')?.value ?? '';
           callbacksRef.current.onBeforeSubmit?.(email);
         },
 
@@ -88,10 +97,8 @@ export default function HubSpotForm({
       });
     }
 
-    // HubSpot script already loaded (e.g. another form on the same page)
     if (window.hbspt) { create(); return; }
 
-    // Script tag exists but hasn't finished loading — poll
     if (document.querySelector('script[src*="js.hsforms.net"]')) {
       const poll = setInterval(() => {
         if (window.hbspt) { clearInterval(poll); create(); }
@@ -99,14 +106,13 @@ export default function HubSpotForm({
       return () => clearInterval(poll);
     }
 
-    // Load the script for the first time
     const script = document.createElement('script');
     script.src = '//js.hsforms.net/forms/embed/v2.js';
     script.charset = 'utf-8';
     script.async = true;
     script.addEventListener('load', create);
     document.body.appendChild(script);
-  }, []); // intentionally empty — form is created once on mount
+  }, []);
 
   return <div id={containerId.current} ref={containerRef} />;
 }
