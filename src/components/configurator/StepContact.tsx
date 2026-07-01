@@ -22,7 +22,7 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
 
   const [form, setForm] = useState({
     firstname: '', lastname: '', company: '', industry: '',
-    email: '', phone: '', notes: '',
+    email: '', phone: '', region_name: '', notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
@@ -195,13 +195,23 @@ export default function StepContact({ source, escalationRequest, onBack }: StepC
           />
         </div>
 
-        <div>
-          <label className={LABEL}>Industry</label>
-          <input
-            type="text" value={form.industry}
-            onChange={e => setField('industry', e.target.value)}
-            className={INPUT} placeholder="e.g. Healthcare, Construction…"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>Industry</label>
+            <input
+              type="text" value={form.industry}
+              onChange={e => setField('industry', e.target.value)}
+              className={INPUT} placeholder="e.g. Healthcare…"
+            />
+          </div>
+          <div>
+            <label className={LABEL}>State / Region</label>
+            <input
+              type="text" value={form.region_name}
+              onChange={e => setField('region_name', e.target.value)}
+              className={INPUT} placeholder="e.g. California"
+            />
+          </div>
         </div>
 
         <div>
