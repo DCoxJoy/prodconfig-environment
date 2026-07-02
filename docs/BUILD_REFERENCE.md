@@ -602,7 +602,7 @@ Build components in this order. Each component should be in `src/components/conf
 - Bundle sub-total
 - CTA grid: Add to cart (disabled if all qty=0) / Contact sales / Share bundle
 - "Add at least one item" note when disabled
-- Inline Share panel (toggles open below CTA grid, above Why section)
+- ~~Inline Share panel (toggles open below CTA grid, above Why section)~~ — **superseded, see CLAUDE.md.** Share bundle now opens a `mailto:` link directly on click; the panel (email/message fields, copy-link) was removed.
 - "Why this bundle fits your needs" section with Joy AI badge
   - On mount: fetch `/api/claude` with current bundle context → display paragraph
   - Show loading spinner while fetching
@@ -757,7 +757,7 @@ All items below were verified during Phase 1 build. Retained as a reference for 
 - [x] "Add at least one item" note appears when disabled
 - [x] Add to cart calls `/api/cart` then redirects to BC checkout URL
 - [x] Contact sales button routes to Contact Sales (manual source)
-- [x] Share bundle toggles inline panel below CTA grid
+- [x] ~~Share bundle toggles inline panel below CTA grid~~ — superseded; Share bundle now opens `mailto:` directly (see CLAUDE.md)
 - [x] "Why this bundle fits" fetches from `/api/claude` on mount
 - [x] Loading state shown while Claude responds
 - [x] Fallback paragraph shown if Claude API fails

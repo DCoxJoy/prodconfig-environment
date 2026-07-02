@@ -10,7 +10,7 @@
 
 ---
 
-## CURRENT STATUS — PHASE 2 COMPLETE + CONTACT FORM WORKING
+## CURRENT STATUS — PHASE 2 COMPLETE + CONTACT FORM + SHARE BUNDLE WORKING
 
 **All phases complete and working.** Do not delete or rebuild from scratch. Read this section before making any changes.
 
@@ -39,6 +39,7 @@
 - **`vesa_compatible` and `magconnect` removed from selectable features** — both removed from `DEVICE_FEATURE_MAP` in `catalog.ts`. Mount pairing is now driven entirely by environment answers (`mount_surface` + `mount_install`) and the case-series compatibility filter. Case enrichment entries carry `vesa_compatible`/`magconnect` internally for bundle logic — they are not user-facing.
 - **Contact Sales form** — `StepContact.tsx` uses a custom React form that POSTs to `/api/contact`. Sends device name + full bundle context (type/name/SKU/quantity/sub-total) in the HubSpot `message` field. HubSpot Forms Submission API — no auth token required. `src/components/ui/HubSpotForm.tsx` is retained but superseded (embed injection was unreliable).
 - **HubSpot form configuration** — Portal ID `20662622`, Form ID `ba721aec-670d-456f-b004-c8434e9e3170`. reCAPTCHA must remain **disabled** on this form (it blocks the Forms Submission API). `region_name` field removed from code and HubSpot form editor. Submissions from localhost are briefly quarantined as spam — resolves automatically in production.
+- **Share bundle — direct `mailto:` on click** — `StepBundle.tsx`'s "Share bundle" button no longer opens an inline panel. `shareBundle()` builds a `mailto:` URL (blank recipient, subject = `Bundle recommendation for {device}`, body = device + bundle items/SKUs/qty/sub-total) and sets `window.location.href` to it, handing off to the user's own mail client immediately. No server route, no email provider, no recipient/message editing UI, no copy-link. This was a deliberate simplification — an earlier version had a popup panel with editable To/Message fields and a fake demo copy-link (`.../bundle/demo-12345`); both were removed as unnecessary for a one-click share action. Confirmed working end-to-end by the user (opens local mail client, bundle context populated correctly).
 
 ### Key files
 | File | Purpose |
@@ -53,6 +54,7 @@
 | `src/app/api/cart/route.ts` | BC cart creation — prefers live BC IDs over `SKU_TO_BC_IDS` fallback |
 | `src/app/api/admin/enrich/route.ts` | One-shot seed endpoint — POST to regenerate enrichment map |
 | `src/components/configurator/StepContact.tsx` | Custom React contact form — builds `message` from bundle state |
+| `src/components/configurator/StepBundle.tsx` | Bundle step — `shareBundle()` opens `mailto:` directly on click, no panel |
 | `src/lib/ConfiguratorContext.tsx` | `liveBundleOptions` state, `SET_BUNDLE_OPTIONS`, 3-priority `liveProducts` |
 | `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount; calls `/api/ai-edit` for AI edits; no-products message |
 | `src/lib/questions.ts` | `ENV_QUESTIONS_TABLET` — `power_needed` removed, `mount_install` added (conditional); `getActiveTabletQuestions(mountSurface?)` exported |
@@ -113,6 +115,8 @@ Requires Node v20 via nvm:
 source ~/.nvm/nvm.sh && nvm use 20.20.2 && npm run dev
 ```
 Runs on **localhost:3000**.
+
+`playwright` is installed as a devDependency for driving headless-browser UI verification (screenshot + console-error checks) during development. Not part of the production build.
 
 ---
 
