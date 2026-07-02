@@ -83,8 +83,8 @@ export const ENV_QUESTIONS_TABLET: EnvQuestion[] = [
     q: 'How will the mount attach to the surface?',
     hint: 'Determines adhesive vs. drill-down mounting solution',
     choices: [
-      { id: 'drill',    label: 'Permanent / drill-down' },
-      { id: 'adhesive', label: 'Adhesive / no-drill' },
+      { id: 'drill',    label: 'Drill Down' },
+      { id: 'adhesive', label: 'Adhesive' },
     ],
   },
   {
