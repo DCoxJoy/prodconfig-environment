@@ -10,6 +10,22 @@
 
 ---
 
+## WORKING PRINCIPLES
+
+General engineering discipline for this repo — applies on top of the project-specific rules below. Use judgment on trivial tasks; bias toward caution on anything nontrivial.
+
+1. **Think before coding.** State assumptions explicitly. If multiple interpretations exist, present them — don't pick silently. If a simpler approach exists, say so. If something is unclear, stop and ask rather than guessing.
+
+2. **Simplicity first.** Minimum code that solves the problem — no speculative features, no unrequested abstractions or configurability, no error handling for impossible scenarios. If it could be a quarter of the size, rewrite it.
+
+3. **Surgical changes.** Touch only what the task requires. Don't refactor or "improve" adjacent code, comments, or formatting, and don't touch unrelated dead code — mention it instead of removing it. Match existing style even where you'd do it differently. Do remove imports/variables/functions that your own change made unused.
+
+4. **Goal-driven execution.** Turn tasks into verifiable success criteria before starting (e.g. "fix the bug" → "write a test that reproduces it, then make it pass"). For multi-step work, state a brief plan with a verification check per step, then loop against it rather than stopping to ask at each step.
+
+Every changed line should trace back to the actual request. If a diff drifts into unrelated refactoring or unrequested flexibility, that's the signal to stop and reconsider.
+
+---
+
 ## CURRENT STATUS — PHASE 2 COMPLETE + CONTACT FORM + SHARE BUNDLE WORKING
 
 **All phases complete and working.** Do not delete or rebuild from scratch. Read this section before making any changes.
