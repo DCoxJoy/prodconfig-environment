@@ -328,6 +328,7 @@ export async function POST(request: Request) {
           unitPrice:   caseProduct.price,
           bcProductId: caseProduct.id,
           bcVariantId: variantIds[caseProduct.id],
+          imageUrl:    caseProduct.image_url,
         },
       ];
 
@@ -340,6 +341,7 @@ export async function POST(request: Request) {
           unitPrice:   selectedMount.price,
           bcProductId: selectedMount.id,
           bcVariantId: variantIds[selectedMount.id],
+          imageUrl:    selectedMount.image_url,
         });
       }
 
@@ -352,6 +354,7 @@ export async function POST(request: Request) {
           unitPrice:   selectedAccessory.price,
           bcProductId: selectedAccessory.id,
           bcVariantId: variantIds[selectedAccessory.id],
+          imageUrl:    selectedAccessory.image_url,
         });
       }
 

@@ -189,9 +189,18 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                   isZero ? 'opacity-40' : '',
                 ].join(' ')}
               >
-                <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-                  <Icon size={20} />
-                </div>
+                {p.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                    <Icon size={20} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
                   <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>

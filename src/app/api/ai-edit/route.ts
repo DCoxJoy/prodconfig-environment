@@ -258,6 +258,7 @@ Set confidence to "low" if none of the candidates are a genuinely good match for
       unitPrice: selectedProduct.price,
       bcProductId: selectedProduct.id,
       bcVariantId: variantIds[selectedProduct.id],
+      imageUrl: selectedProduct.image_url,
     };
 
     console.log(`[/api/ai-edit] Swapped ${component}: ${currentItem?.sku ?? 'none'} → ${selectedProduct.sku}`);

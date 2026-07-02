@@ -66,6 +66,8 @@ export interface BundleItem {
   // Live BC IDs — set when item was fetched from BC catalog; used for cart creation
   bcProductId?: number;
   bcVariantId?: number;
+  // BC product main image — set when item was fetched from BC catalog; falls back to icon when absent
+  imageUrl?: string;
 }
 
 export interface BundleOption {

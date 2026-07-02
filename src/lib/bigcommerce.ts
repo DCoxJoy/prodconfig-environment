@@ -25,6 +25,7 @@ export interface BcProduct {
   name: string;
   sku: string;
   price: number;
+  image_url?: string;
 }
 
 export interface BcCustomField {
@@ -33,8 +34,21 @@ export interface BcCustomField {
   value: string;
 }
 
+export interface BcImage {
+  is_thumbnail: boolean;
+  url_standard: string;
+}
+
 export interface BcProductFull extends BcProduct {
   custom_fields: BcCustomField[];
+}
+
+// Picks the product's designated thumbnail image (else the first image) and
+// returns a mid-sized URL suitable for small in-app thumbnails.
+function extractMainImageUrl(images?: BcImage[]): string | undefined {
+  if (!images || images.length === 0) return undefined;
+  const main = images.find(img => img.is_thumbnail) ?? images[0];
+  return main.url_standard;
 }
 
 // Returns all variants whose SKU matches any in the provided list.
@@ -105,7 +119,12 @@ export async function getPricesBySkus(skus: string[]): Promise<Record<string, nu
 // Cached for 5 minutes — BC catalog changes don't need real-time propagation.
 export async function getAllProducts(): Promise<BcProductFull[]> {
   const url = (page: number) =>
-    `${bcBase()}/catalog/products?include=custom_fields&limit=100&page=${page}&is_visible=true`;
+    `${bcBase()}/catalog/products?include=custom_fields,images&limit=100&page=${page}&is_visible=true`;
+
+  const withImageUrl = (raw: BcProductFull & { images?: BcImage[] }): BcProductFull => ({
+    ...raw,
+    image_url: extractMainImageUrl(raw.images),
+  });
 
   const page1Res = await fetch(url(1), {
     headers: bcHeaders(),
@@ -118,17 +137,17 @@ export async function getAllProducts(): Promise<BcProductFull[]> {
   const page1 = await page1Res.json();
   const totalPages: number = page1.meta?.pagination?.total_pages ?? 1;
 
-  if (totalPages <= 1) return (page1.data ?? []) as BcProductFull[];
+  if (totalPages <= 1) return (page1.data ?? []).map(withImageUrl);
 
   const remaining = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, i) =>
       fetch(url(i + 2), { headers: bcHeaders(), next: { revalidate: 300 } })
         .then(r => r.json())
-        .then(d => (d.data ?? []) as BcProductFull[])
+        .then(d => (d.data ?? []).map(withImageUrl))
     )
   );
 
-  return [...(page1.data ?? []), ...remaining.flat()];
+  return [...(page1.data ?? []).map(withImageUrl), ...remaining.flat()];
 }
 
 // Returns the first variant ID for each of the given product IDs (parallel).
