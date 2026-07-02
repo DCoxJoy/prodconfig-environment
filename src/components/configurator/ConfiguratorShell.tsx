@@ -21,7 +21,7 @@ const MAIN_STEPS: StepId[] = ['devices', 'features', 'environment', 'review', 'b
 
 const STEP_META: Record<StepId, { q: string; sub: string; pct: number }> = {
   devices:     { q: 'Find your device',                              sub: 'Select your device category below, then tap your exact model — this determines which cases, mounts, and accessories we can recommend.', pct: 0   },
-  features:    { q: 'What features matter most?',                    sub: 'Tell us if you need a certified rugged case, then select the protection features that matter most for how you use your device.', pct: 25  },
+  features:    { q: 'What features matter most?',                    sub: 'Tell us if you need a certified rugged case, or select features that matter most for how you use your device.', pct: 25  },
   environment: { q: 'How and where do you use your device?',         sub: 'Answer a few quick questions about your daily use. Your answers determine which mount and accessories we recommend.', pct: 50  },
   review:      { q: 'Review your bundle',                            sub: "We've built a bundle from your answers below. Adjust quantities, or ask our AI agent to swap an item, then confirm to see your final bundle.", pct: 75  },
   bundle:      { q: 'Your recommended bundle',                       sub: "Here's your finished bundle with full pricing. Add it to your cart, share it by email, or contact our sales team if you'd like help.", pct: 100 },

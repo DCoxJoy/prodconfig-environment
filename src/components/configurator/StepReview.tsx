@@ -203,12 +203,14 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                     }
                   </div>
                 </div>
-                <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
-                <div className={[
-                  'text-[14px] font-semibold min-w-[52px] text-right flex-shrink-0',
-                  isZero ? 'text-stone-300' : 'text-stone-900',
-                ].join(' ')}>
-                  {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
+                  <div className={[
+                    'text-[14px] font-semibold text-right',
+                    isZero ? 'text-stone-300' : 'text-stone-900',
+                  ].join(' ')}>
+                    {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
+                  </div>
                 </div>
               </div>
             );
