@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import {
-  IconSparkles, IconShoppingCart, IconShare, IconX, IconCopy, IconSend, IconCheck,
+  IconSparkles, IconShoppingCart, IconShare, IconCheck,
 } from '@tabler/icons-react';
 import { getDeviceFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
@@ -23,9 +23,6 @@ export default function StepBundle({ onContactSales, onAddToCart }: StepBundlePr
 
   const [paragraph,   setParagraph]   = useState<string | null>(null);
   const [loadingPara, setLoadingPara] = useState(true);
-  const [shareOpen,   setShareOpen]   = useState(false);
-  const [copied,      setCopied]      = useState(false);
-  const [sendSuccess, setSendSuccess] = useState(false);
   const fetchedRef = useRef(false);
 
   const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
@@ -73,15 +70,9 @@ export default function StepBundle({ onContactSales, onAddToCart }: StepBundlePr
     `\nBundle sub-total: $${total.toFixed(2)}\n\nhttps://configurator.thejoyfactory.com/bundle/demo-12345`,
   ].join('\n');
 
-  function copyLink() {
-    navigator.clipboard.writeText('https://configurator.thejoyfactory.com/bundle/demo-12345').catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function sendShare() {
-    setSendSuccess(true);
-    setTimeout(() => { setShareOpen(false); setSendSuccess(false); }, 1800);
+  function shareBundle() {
+    const subject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMsg)}`;
   }
 
   return (
@@ -184,11 +175,8 @@ export default function StepBundle({ onContactSales, onAddToCart }: StepBundlePr
           Contact sales
         </button>
         <button
-          onClick={() => setShareOpen(o => !o)}
-          className={[
-            'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border transition-colors cursor-pointer',
-            shareOpen ? 'bg-share text-white border-share' : 'bg-white text-share border-share hover:bg-share/5',
-          ].join(' ')}
+          onClick={shareBundle}
+          className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border border-share bg-white text-share hover:bg-share/5 transition-colors cursor-pointer"
         >
           <IconShare size={18} />
           Share bundle
@@ -198,74 +186,6 @@ export default function StepBundle({ onContactSales, onAddToCart }: StepBundlePr
       {!hasItems && (
         <div className="text-[12px] text-stone-400 text-center mt-2">
           Add at least one item to continue to checkout
-        </div>
-      )}
-
-      {/* ── Share panel ────────────────────────────────────────────────── */}
-      {shareOpen && (
-        <div className="border border-share rounded-2xl overflow-hidden mt-4 animate-[fadeIn_0.15s_ease]">
-          <div className="flex items-center justify-between px-4 py-3 bg-share">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-white">
-              <IconShare size={15} />
-              Share this bundle
-            </div>
-            <button
-              onClick={() => setShareOpen(false)}
-              className="bg-white/20 border-none rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-white"
-            >
-              <IconX size={13} />
-            </button>
-          </div>
-          <div className="px-4 py-4 bg-white">
-            <div className="mb-3.5">
-              <div className="text-[12px] font-semibold text-stone-700 mb-1.5">To — email addresses (comma separated)</div>
-              <input className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-[13px] text-stone-900 bg-white focus:outline-none focus:border-share" placeholder="colleague@company.com, manager@company.com" />
-            </div>
-            <div className="mb-3.5">
-              <div className="text-[12px] font-semibold text-stone-700 mb-1.5">Message</div>
-              <textarea
-                defaultValue={shareMsg}
-                rows={5}
-                className="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-[12px] text-stone-500 bg-stone-50 resize-none leading-relaxed focus:outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2 my-3 text-[11px] text-stone-400 uppercase tracking-widest before:flex-1 before:h-px before:bg-stone-200 after:flex-1 after:h-px after:bg-stone-200">
-              or copy link
-            </div>
-            <div className="flex gap-2">
-              <input
-                readOnly
-                value="https://configurator.thejoyfactory.com/bundle/demo-12345"
-                className="flex-1 border border-stone-200 rounded-xl px-3.5 py-2.5 text-[12px] font-mono text-stone-400 bg-stone-50 min-w-0"
-              />
-              <button
-                onClick={copyLink}
-                className={[
-                  'flex-shrink-0 border rounded-xl px-4 py-2.5 text-[12px] font-semibold cursor-pointer flex items-center gap-1.5',
-                  copied
-                    ? 'bg-[#f0faf6] border-[#a8e0c8] text-[#136645]'
-                    : 'bg-stone-100 border-stone-300 text-stone-700 hover:bg-white',
-                ].join(' ')}
-              >
-                <IconCopy size={13} />
-                {copied ? '✓ Copied' : 'Copy'}
-              </button>
-            </div>
-          </div>
-          {!sendSuccess ? (
-            <div className="flex gap-2 px-4 py-3 border-t border-stone-100 bg-white">
-              <button onClick={() => setShareOpen(false)} className="bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-[13px] font-medium text-stone-500 cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={sendShare} className="flex-1 bg-share border-none rounded-xl py-2.5 text-[13px] font-semibold text-white cursor-pointer flex items-center justify-center gap-2">
-                <IconSend size={14} /> Send email
-              </button>
-            </div>
-          ) : (
-            <div className="text-[12px] text-[#1D9E75] text-center px-4 py-3 font-semibold border-t border-stone-100 bg-white">
-              <IconCheck size={14} className="inline mr-1.5" /> Bundle shared successfully!
-            </div>
-          )}
         </div>
       )}
 
