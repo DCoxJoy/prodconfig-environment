@@ -32,6 +32,12 @@ function getDeviceCompatList(cf: CfMap): string[] {
   return raw.split(',').map(s => s.trim()).filter(Boolean);
 }
 
+function getCertifications(cf: CfMap): string {
+  const raw = cf.certifications;
+  if (!raw) return '';
+  return (Array.isArray(raw) ? raw.join(',') : raw).toUpperCase();
+}
+
 // ─── Mount scoring ────────────────────────────────────────────────────────────
 // Enrichment data preferred; keyword fallback for unrecognized SKUs.
 
@@ -109,18 +115,32 @@ function scoreAccessory(name: string, sku: string, features: FeatureId[]): numbe
 // ─── Case scoring ─────────────────────────────────────────────────────────────
 // Higher score = better match for this user's feature preferences.
 
-function scoreCase(sku: string, features: FeatureId[]): number {
+// Maps a selected FeatureId to the keyword it must find in BC's `certifications`
+// custom field to count as a genuine match (e.g. "IP68,MIL-STD-810H").
+const FEATURE_TO_CERT_KEYWORD: Partial<Record<FeatureId, string>> = {
+  ip_rating:  'IP',
+  mil_rating: 'MIL-STD',
+};
+
+function scoreCase(sku: string, features: FeatureId[], certifications = ''): number {
   const enrichment = getEnrichment(sku);
   let score = 0;
   // Feature coverage score
   if (enrichment.features?.length) {
     score += enrichment.features.filter(f => features.includes(f)).length * 2;
   }
-  // Ruggedness bias: if user selected protection features, prefer Extreme/Bold
+  // Certification match — verified against BC's certifications field, so a case
+  // only gets credit for ip_rating/mil_rating if it's actually certified for it.
+  for (const feat of features) {
+    const keyword = FEATURE_TO_CERT_KEYWORD[feat];
+    if (keyword && certifications.includes(keyword)) score += 5;
+  }
+  // Ruggedness bias: light secondary signal for series when certifications data
+  // doesn't cover the requested feature (e.g. chemical_resistant, thermo_defend)
   const wantsRugged = features.some(f => ['ip_rating', 'mil_rating', 'chemical_resistant', 'thermo_defend'].includes(f));
   const wantsLight  = features.some(f => ['kick_stand', 'pencil_holder'].includes(f));
   const series = enrichment.series;
-  if (wantsRugged && (series === 'Extreme' || series === 'Bold')) score += 3;
+  if (wantsRugged && (series === 'Extreme' || series === 'Bold')) score += 1;
   if (wantsLight  && series === 'Slim') score += 2;
   // bundle_priority as tiebreaker (lower priority number = higher rank)
   if (enrichment.bundle_priority) score += (10 - enrichment.bundle_priority);
@@ -253,7 +273,9 @@ export async function POST(request: Request) {
     // Without diversity, high-scoring ruggedness features cause all top cases to
     // be Bold variants (same series). Force options 1 and 2 to be different series
     // so the two bundle options always show meaningfully different case choices.
-    const sortedCases = [...cases].sort((a, b) => scoreCase(b.sku, features) - scoreCase(a.sku, features));
+    const sortedCases = [...cases].sort((a, b) =>
+      scoreCase(b.sku, features, getCertifications(b.cf)) - scoreCase(a.sku, features, getCertifications(a.cf))
+    );
     const topCases: typeof cases = [];
     const usedSeries = new Set<string>();
     for (const c of sortedCases) {
