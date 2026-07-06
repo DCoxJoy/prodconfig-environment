@@ -79,8 +79,29 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json();
-    const checkoutUrl = data?.data?.redirect_urls?.checkout_url
-      ?? `https://store-${storeHash}.mybigcommerce.com/checkout`;
+    const cartId = data?.data?.id;
+
+    // Cart creation doesn't return redirect_urls — a separate call is required
+    // to get the tokenized checkout URL tied to this specific cart.
+    const redirectRes = await fetch(
+      `https://api.bigcommerce.com/stores/${storeHash}/v3/carts/${cartId}/redirect_urls`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Auth-Token': accessToken as string,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!redirectRes.ok) {
+      const text = await redirectRes.text();
+      throw new Error(`BigCommerce redirect URL creation failed: ${redirectRes.status} ${text}`);
+    }
+
+    const redirectData = await redirectRes.json();
+    const checkoutUrl = redirectData?.data?.checkout_url;
 
     return NextResponse.json({ checkoutUrl });
   } catch (error) {
