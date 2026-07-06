@@ -201,6 +201,7 @@ export default function ConfiguratorShell() {
           {step === 'bundle'  && (
             <StepBundle
               onContactSales={() => goContactSales('manual')}
+              onFeatureGap={(req) => goContactSales('escalation', req)}
               onAddToCart={handleAddToCart}
             />
           )}

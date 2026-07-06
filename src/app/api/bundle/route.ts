@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { getAllProducts, getFirstVariantIds, BcProductFull } from '../../../lib/bigcommerce';
 import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
 import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
+import { ALL_FEATURES } from '../../../lib/catalog';
 import { BundleItem, BundleOption, FeatureId, type IphoneScenarios, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
@@ -145,6 +146,19 @@ function scoreCase(sku: string, features: FeatureId[], certifications = ''): num
   // bundle_priority as tiebreaker (lower priority number = higher rank)
   if (enrichment.bundle_priority) score += (10 - enrichment.bundle_priority);
   return score;
+}
+
+// Returns the display titles of any user-selected features this case's real
+// certifications don't back up — e.g. user picked IP68 but no IP68 case exists
+// for their device, so the closest available case is being shown instead.
+function getUnmetFeatureLabels(features: FeatureId[], certifications: string): string[] {
+  return features
+    .filter(f => {
+      const keyword = FEATURE_TO_CERT_KEYWORD[f];
+      return keyword && !certifications.includes(keyword);
+    })
+    .map(f => ALL_FEATURES.find(feat => feat.id === f)?.title)
+    .filter((title): title is string => !!title);
 }
 
 // ─── Accessory icon ────────────────────────────────────────────────────────────
@@ -351,6 +365,7 @@ export async function POST(request: Request) {
           bcProductId: caseProduct.id,
           bcVariantId: variantIds[caseProduct.id],
           imageUrl:    caseProduct.image_url,
+          unmetFeatureLabels: getUnmetFeatureLabels(features, getCertifications(caseProduct.cf)),
         },
       ];
 

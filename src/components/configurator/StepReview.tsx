@@ -181,46 +181,62 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
           {liveProducts.map((p, i) => {
             const isZero = (qtys[i] ?? 0) === 0;
             const Icon   = getTablerIcon(p.icon);
+            const hasUnmetFeatures = (p.unmetFeatureLabels?.length ?? 0) > 0;
             return (
-              <div
-                key={i}
-                className={[
-                  'flex items-center gap-3.5 py-5 border-b border-stone-200 last:border-b-0 transition-opacity',
-                  isZero ? 'opacity-40' : '',
-                ].join(' ')}
-              >
-                {p.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
-                  />
-                ) : (
-                  <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-                    <Icon size={20} />
+              <div key={i} className="border-b border-stone-200 last:border-b-0">
+                <div
+                  className={[
+                    'flex items-center gap-3.5 py-5 transition-opacity',
+                    isZero ? 'opacity-40' : '',
+                  ].join(' ')}
+                >
+                  {p.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                      <Icon size={20} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
+                    <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                    <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
+                    <div className="text-[12px] text-stone-500 mt-0.5">
+                      {isZero
+                        ? <span className="text-stone-400 italic">Excluded from cart</span>
+                        : `$${p.unitPrice.toFixed(2)} each`
+                      }
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
+                    <div className={[
+                      'text-[14px] font-semibold text-right',
+                      isZero ? 'text-stone-300' : 'text-stone-900',
+                    ].join(' ')}>
+                      {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
+                    </div>
+                  </div>
+                </div>
+                {hasUnmetFeatures && (
+                  <div className="flex items-start gap-2 bg-[#fff8f0] border border-[#f0a060] rounded-lg px-3 py-2.5 mb-4 text-[11px] text-[#7a3a00] leading-relaxed">
+                    <IconInfoCircle size={13} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      No case with {p.unmetFeatureLabels!.join(' or ')} is available for {device?.name ?? 'this device'} — showing the closest match instead.{' '}
+                      <button
+                        onClick={() => onEscalate(`No case with ${p.unmetFeatureLabels!.join(' or ')} is available for ${device?.name ?? 'this device'}. Closest match shown: ${p.name} (${p.sku}).`)}
+                        className="underline font-semibold cursor-pointer"
+                      >
+                        Contact sales
+                      </button>
+                    </span>
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-                  <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
-                  <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
-                  <div className="text-[12px] text-stone-500 mt-0.5">
-                    {isZero
-                      ? <span className="text-stone-400 italic">Excluded from cart</span>
-                      : `$${p.unitPrice.toFixed(2)} each`
-                    }
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
-                  <div className={[
-                    'text-[14px] font-semibold text-right',
-                    isZero ? 'text-stone-300' : 'text-stone-900',
-                  ].join(' ')}>
-                    {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
-                  </div>
-                </div>
               </div>
             );
           })}

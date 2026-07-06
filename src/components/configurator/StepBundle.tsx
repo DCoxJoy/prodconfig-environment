@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import {
-  IconSparkles, IconShoppingCart, IconShare, IconCheck,
+  IconSparkles, IconShoppingCart, IconShare, IconCheck, IconInfoCircle,
 } from '@tabler/icons-react';
 import { getDeviceFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
@@ -12,10 +12,11 @@ import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface StepBundleProps {
   onContactSales: (source: 'manual') => void;
+  onFeatureGap: (requestText: string) => void;
   onAddToCart: () => void;
 }
 
-export default function StepBundle({ onContactSales, onAddToCart }: StepBundleProps) {
+export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }: StepBundleProps) {
   const { state, liveProducts, qtys } = useConfigurator();
   const { device, features, scenarios, appliedEdits } = state;
 
@@ -105,49 +106,65 @@ export default function StepBundle({ onContactSales, onAddToCart }: StepBundlePr
         const swapped  = i === lastChangedIndex && qtys[i] > 0;
         const excluded = qtys[i] === 0;
         const Icon     = getTablerIcon(p.icon);
+        const hasUnmetFeatures = (p.unmetFeatureLabels?.length ?? 0) > 0;
         return (
-          <div
-            key={i}
-            className={[
-              'flex items-center gap-3.5 py-4 border-b border-stone-200 last:border-b-0 relative transition-opacity',
-              swapped  ? 'bg-[#f0faf6] -mx-2 px-2 rounded-xl border-b-0 mb-1' : '',
-              excluded ? 'opacity-40' : '',
-            ].join(' ')}
-          >
-            {swapped && (
-              <span className="absolute top-2 right-0 text-[10px] text-white bg-[#1D9E75] px-2 py-0.5 rounded-full font-bold tracking-wide">
-                UPDATED
-              </span>
-            )}
-            {excluded && (
-              <span className="absolute top-2 right-0 text-[10px] text-white bg-stone-400 px-2 py-0.5 rounded-full font-bold tracking-wide">
-                NOT IN CART
-              </span>
-            )}
-            {p.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.imageUrl}
-                alt={p.name}
-                className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-                <Icon size={18} />
+          <div key={i} className="border-b border-stone-200 last:border-b-0">
+            <div
+              className={[
+                'flex items-center gap-3.5 py-4 relative transition-opacity',
+                swapped  ? 'bg-[#f0faf6] -mx-2 px-2 rounded-xl mb-1' : '',
+                excluded ? 'opacity-40' : '',
+              ].join(' ')}
+            >
+              {swapped && (
+                <span className="absolute top-2 right-0 text-[10px] text-white bg-[#1D9E75] px-2 py-0.5 rounded-full font-bold tracking-wide">
+                  UPDATED
+                </span>
+              )}
+              {excluded && (
+                <span className="absolute top-2 right-0 text-[10px] text-white bg-stone-400 px-2 py-0.5 rounded-full font-bold tracking-wide">
+                  NOT IN CART
+                </span>
+              )}
+              {p.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.imageUrl}
+                  alt={p.name}
+                  className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                  <Icon size={18} />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
+                <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
+                <div className="text-[12px] text-stone-500 mt-0.5">
+                  {excluded ? <em className="text-stone-400">Excluded</em> : `Qty: ${qtys[i]}`}
+                </div>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-              <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
-              <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
-              <div className="text-[12px] text-stone-500 mt-0.5">
-                {excluded ? <em className="text-stone-400">Excluded</em> : `Qty: ${qtys[i]}`}
+              <div className={['text-[14px] font-semibold ml-auto flex-shrink-0 text-right', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
+                ${(p.unitPrice * qtys[i]).toFixed(2)}
+                {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">${p.unitPrice.toFixed(2)} ×{qtys[i]}</div>}
               </div>
             </div>
-            <div className={['text-[14px] font-semibold ml-auto flex-shrink-0 text-right', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
-              ${(p.unitPrice * qtys[i]).toFixed(2)}
-              {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">${p.unitPrice.toFixed(2)} ×{qtys[i]}</div>}
-            </div>
+            {hasUnmetFeatures && (
+              <div className="flex items-start gap-2 bg-[#fff8f0] border border-[#f0a060] rounded-lg px-3 py-2.5 mb-4 text-[11px] text-[#7a3a00] leading-relaxed">
+                <IconInfoCircle size={13} className="flex-shrink-0 mt-0.5" />
+                <span>
+                  No case with {p.unmetFeatureLabels!.join(' or ')} is available for {device?.name ?? 'this device'} — showing the closest match instead.{' '}
+                  <button
+                    onClick={() => onFeatureGap(`No case with ${p.unmetFeatureLabels!.join(' or ')} is available for ${device?.name ?? 'this device'}. Closest match shown: ${p.name} (${p.sku}).`)}
+                    className="underline font-semibold cursor-pointer"
+                  >
+                    Contact sales
+                  </button>
+                </span>
+              </div>
+            )}
           </div>
         );
       })}

@@ -68,6 +68,9 @@ export interface BundleItem {
   bcVariantId?: number;
   // BC product main image — set when item was fetched from BC catalog; falls back to icon when absent
   imageUrl?: string;
+  // Case only — titles of user-selected features this specific case doesn't actually have
+  // certification for (e.g. user selected IP68 but no IP68 case exists for their device)
+  unmetFeatureLabels?: string[];
 }
 
 export interface BundleOption {
