@@ -117,9 +117,11 @@ function scoreAccessory(name: string, sku: string, features: FeatureId[]): numbe
 // Higher score = better match for this user's feature preferences.
 
 // Maps a selected FeatureId to the keyword it must find in BC's `certifications`
-// custom field to count as a genuine match (e.g. "IP68,MIL-STD-810H").
+// custom field to count as a genuine match (e.g. "IP68,MIL-STD-810H"). ip_rating is
+// pinned to "IP68" specifically — the Features step advertises "IP68 waterproof rating",
+// so a lower rating like IP54/IP64 must not count as satisfying it.
 const FEATURE_TO_CERT_KEYWORD: Partial<Record<FeatureId, string>> = {
-  ip_rating:  'IP',
+  ip_rating:  'IP68',
   mil_rating: 'MIL-STD',
 };
 
@@ -369,6 +371,7 @@ export async function POST(request: Request) {
           bcProductId: caseProduct.id,
           bcVariantId: variantIds[caseProduct.id],
           imageUrl:    caseProduct.image_url,
+          productUrl:  caseProduct.product_url,
           unmetFeatureLabels: getUnmetFeatureLabels(features, getCertifications(caseProduct.cf), caseProduct.sku),
         },
       ];
@@ -383,6 +386,7 @@ export async function POST(request: Request) {
           bcProductId: selectedMount.id,
           bcVariantId: variantIds[selectedMount.id],
           imageUrl:    selectedMount.image_url,
+          productUrl:  selectedMount.product_url,
         });
       }
 
@@ -396,6 +400,7 @@ export async function POST(request: Request) {
           bcProductId: selectedAccessory.id,
           bcVariantId: variantIds[selectedAccessory.id],
           imageUrl:    selectedAccessory.image_url,
+          productUrl:  selectedAccessory.product_url,
         });
       }
 

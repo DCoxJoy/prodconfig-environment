@@ -26,6 +26,7 @@ export interface BcProduct {
   sku: string;
   price: number;
   image_url?: string;
+  product_url?: string;
 }
 
 export interface BcCustomField {
@@ -49,6 +50,13 @@ function extractMainImageUrl(images?: BcImage[]): string | undefined {
   if (!images || images.length === 0) return undefined;
   const main = images.find(img => img.is_thumbnail) ?? images[0];
   return main.url_standard;
+}
+
+// BC returns custom_url.url as a store-relative path (e.g. "/product-name/").
+// Resolves it against the store's default BigCommerce storefront domain.
+function resolveProductUrl(customUrl?: { url: string }): string | undefined {
+  if (!customUrl?.url) return undefined;
+  return `https://store-${process.env.BC_STORE_HASH}.mybigcommerce.com${customUrl.url}`;
 }
 
 // Returns all variants whose SKU matches any in the provided list.
@@ -121,9 +129,10 @@ export async function getAllProducts(): Promise<BcProductFull[]> {
   const url = (page: number) =>
     `${bcBase()}/catalog/products?include=custom_fields,images&limit=100&page=${page}&is_visible=true`;
 
-  const withImageUrl = (raw: BcProductFull & { images?: BcImage[] }): BcProductFull => ({
+  const withImageUrl = (raw: BcProductFull & { images?: BcImage[]; custom_url?: { url: string } }): BcProductFull => ({
     ...raw,
-    image_url: extractMainImageUrl(raw.images),
+    image_url:   extractMainImageUrl(raw.images),
+    product_url: resolveProductUrl(raw.custom_url),
   });
 
   const page1Res = await fetch(url(1), {

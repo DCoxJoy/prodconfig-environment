@@ -24,6 +24,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
 
   const [paragraph,   setParagraph]   = useState<string | null>(null);
   const [loadingPara, setLoadingPara] = useState(true);
+  const [copied,      setCopied]      = useState(false);
   const fetchedRef = useRef(false);
 
   const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
@@ -68,12 +69,19 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
         ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]} — $${(p.unitPrice * qtys[i]).toFixed(2)}`
         : null)
       .filter(Boolean),
-    `\nBundle sub-total: $${total.toFixed(2)}\n\nhttps://configurator.thejoyfactory.com/bundle/demo-12345`,
+    `\nBundle sub-total: $${total.toFixed(2)}`,
   ].join('\n');
 
-  function shareBundle() {
-    const subject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMsg)}`;
+  const shareSubject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
+
+  // mailto: links are unreliable across mail-client/OS/browser-policy configurations
+  // (some setups open a blank placeholder window instead of a mail client). Copying
+  // to the clipboard works everywhere, regardless of what's installed or configured.
+  function handleShareClick() {
+    navigator.clipboard?.writeText(`${shareSubject}\n\n${shareMsg}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 10000);
+    }).catch(() => {});
   }
 
   return (
@@ -131,7 +139,11 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
                 <img
                   src={p.imageUrl}
                   alt={p.name}
-                  className="w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white"
+                  className={[
+                    'w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white',
+                    p.productUrl ? 'cursor-pointer' : '',
+                  ].join(' ')}
+                  onClick={p.productUrl ? () => window.open(p.productUrl, '_blank', 'noopener,noreferrer') : undefined}
                 />
               ) : (
                 <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
@@ -140,7 +152,18 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
               )}
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-                <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                {p.productUrl ? (
+                  <a
+                    href={p.productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[14px] font-semibold text-stone-900 leading-tight hover:text-brand hover:underline"
+                  >
+                    {p.name}
+                  </a>
+                ) : (
+                  <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                )}
                 <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
                 <div className="text-[12px] text-stone-500 mt-0.5">
                   {excluded ? <em className="text-stone-400">Excluded</em> : `Qty: ${qtys[i]}`}
@@ -201,7 +224,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
           Contact sales
         </button>
         <button
-          onClick={shareBundle}
+          onClick={handleShareClick}
           className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border border-share bg-white text-share hover:bg-share/5 transition-colors cursor-pointer"
         >
           <IconShare size={18} />
@@ -212,6 +235,14 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
       {!hasItems && (
         <div className="text-[12px] text-stone-400 text-center mt-2">
           Add at least one item to continue to checkout
+        </div>
+      )}
+      {copied && (
+        <div className="flex items-start gap-2 bg-share/5 border border-share rounded-xl px-3.5 py-3 mt-3 text-[12px] text-share">
+          <IconCheck size={14} className="flex-shrink-0 mt-0.5" />
+          <span>
+            Bundle details copied to clipboard — paste them into an email, Slack, or wherever you&rsquo;d like to share this bundle.
+          </span>
         </div>
       )}
 
