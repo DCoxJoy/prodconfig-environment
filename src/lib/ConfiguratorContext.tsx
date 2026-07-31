@@ -72,7 +72,15 @@ function reducer(state: FullState, action: Action): FullState {
       return { ...state, certified: action.certified };
 
     case 'CHANGE_CERTIFIED':
-      return { ...state, certified: null, features: [] };
+      return {
+        ...state,
+        certified: null,
+        features: [],
+        liveBundleOptions: null,
+        liveProducts: null,
+        qtys: [1, 1, 1],
+        selectedBundleOption: 0,
+      };
 
     case 'TOGGLE_FEATURE': {
       const family = getDeviceFamily(state.device?.id ?? '');
@@ -82,13 +90,28 @@ function reducer(state: FullState, action: Action): FullState {
       const features = idx > -1
         ? state.features.filter(f => f !== action.id)
         : [...state.features, action.id];
-      return { ...state, features };
+      // Invalidate the cached bundle — feature selection changed, so the Review
+      // step must re-fetch from /api/bundle to reflect the new preferences.
+      return {
+        ...state,
+        features,
+        liveBundleOptions: null,
+        liveProducts: null,
+        qtys: [1, 1, 1],
+        selectedBundleOption: 0,
+      };
     }
 
     case 'SET_SCENARIO':
+      // Invalidate the cached bundle for the same reason as TOGGLE_FEATURE above —
+      // environment answers changed, so mount/accessory scoring needs to re-run.
       return {
         ...state,
         scenarios: { ...state.scenarios, [action.key]: action.value },
+        liveBundleOptions: null,
+        liveProducts: null,
+        qtys: [1, 1, 1],
+        selectedBundleOption: 0,
       };
 
     case 'SET_EDIT_NOTE':

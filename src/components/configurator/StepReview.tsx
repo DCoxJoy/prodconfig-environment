@@ -27,8 +27,10 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
   const [thinking, setThinking] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
 
-  // Fetch live bundle from BC on first render. If liveBundleOptions is already set
-  // (e.g. user navigated back and forward), skip the fetch.
+  // Fetch live bundle from BC on first render. liveBundleOptions is reset to null by the
+  // reducer whenever device/features/scenarios change, so a non-null value here means
+  // nothing relevant changed since the last fetch (e.g. user just navigated back and forward
+  // without altering their answers) — safe to reuse instead of re-fetching.
   useEffect(() => {
     if (liveBundleOptions !== null) {
       setBundleLoading(false);

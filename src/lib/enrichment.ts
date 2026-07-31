@@ -110,7 +110,16 @@ export const PRODUCT_ENRICHMENT: Record<string, ProductEnrichment> = {
 };
 
 export function getEnrichment(sku: string): ProductEnrichment {
-  return PRODUCT_ENRICHMENT[sku] ?? runtimeEnrichmentCache.get(sku) ?? {};
+  const base = PRODUCT_ENRICHMENT[sku] ?? runtimeEnrichmentCache.get(sku) ?? {};
+
+  // Kensington lock compatibility is deterministic from the SKU itself — Bold-series
+  // cases whose SKU ends in "KL" have the physical lock slot; no other case does.
+  // Computed here (rather than hand-curated per SKU) so it can't drift out of date
+  // as new KL SKUs are added to BC, and applies even to SKUs with no manual entry above.
+  if (sku.toUpperCase().endsWith('KL') && !base.features?.includes('kensington_lock')) {
+    return { ...base, features: [...(base.features ?? []), 'kensington_lock'] };
+  }
+  return base;
 }
 
 export function hasEnrichment(sku: string): boolean {

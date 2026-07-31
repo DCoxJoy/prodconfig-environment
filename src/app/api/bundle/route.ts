@@ -148,14 +148,18 @@ function scoreCase(sku: string, features: FeatureId[], certifications = ''): num
   return score;
 }
 
-// Returns the display titles of any user-selected features this case's real
-// certifications don't back up — e.g. user picked IP68 but no IP68 case exists
-// for their device, so the closest available case is being shown instead.
-function getUnmetFeatureLabels(features: FeatureId[], certifications: string): string[] {
+// Returns the display titles of any user-selected features this case doesn't actually
+// back up — e.g. user picked IP68 but no IP68 case exists for their device, or picked
+// Lockable Protection but the recommended case has no Kensington lock slot — so the
+// closest available case is being shown instead.
+function getUnmetFeatureLabels(features: FeatureId[], certifications: string, caseSku: string): string[] {
+  const caseFeatures = getEnrichment(caseSku).features ?? [];
   return features
     .filter(f => {
       const keyword = FEATURE_TO_CERT_KEYWORD[f];
-      return keyword && !certifications.includes(keyword);
+      if (keyword) return !certifications.includes(keyword);
+      if (f === 'kensington_lock') return !caseFeatures.includes('kensington_lock');
+      return false;
     })
     .map(f => ALL_FEATURES.find(feat => feat.id === f)?.title)
     .filter((title): title is string => !!title);
@@ -365,7 +369,7 @@ export async function POST(request: Request) {
           bcProductId: caseProduct.id,
           bcVariantId: variantIds[caseProduct.id],
           imageUrl:    caseProduct.image_url,
-          unmetFeatureLabels: getUnmetFeatureLabels(features, getCertifications(caseProduct.cf)),
+          unmetFeatureLabels: getUnmetFeatureLabels(features, getCertifications(caseProduct.cf), caseProduct.sku),
         },
       ];
 
