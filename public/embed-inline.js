@@ -24,8 +24,8 @@
 
   // Configuration options from script data attributes with defaults
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "100%";
-  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "800px";
-  const maxWidth = (scriptEl && scriptEl.getAttribute("data-max-width")) || "480px";
+  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "900px";
+  const maxWidth = (scriptEl && scriptEl.getAttribute("data-max-width")) || "1200px";
 
   // Build the iframe — the entire configurator app, sized inline in the page's
   // own layout flow (no floating button, no open/close toggle).
