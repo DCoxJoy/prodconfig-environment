@@ -24,7 +24,6 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
 
   const [paragraph,   setParagraph]   = useState<string | null>(null);
   const [loadingPara, setLoadingPara] = useState(true);
-  const [copied,      setCopied]      = useState(false);
   const fetchedRef = useRef(false);
 
   const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * qtys[i], 0);
@@ -73,15 +72,15 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
   ].join('\n');
 
   const shareSubject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
+  const shareMailtoHref = `mailto:?subject=${encodeURIComponent(shareSubject)}&body=${encodeURIComponent(shareMsg)}`;
 
-  // mailto: links are unreliable across mail-client/OS/browser-policy configurations
-  // (some setups open a blank placeholder window instead of a mail client). Copying
-  // to the clipboard works everywhere, regardless of what's installed or configured.
+  // Navigate the top-level page, not just this iframe — same fix as the checkout
+  // redirect in ConfiguratorShell.tsx. When this app is embedded (e.g. the HubSpot
+  // landing page), a mailto: hand-off attempted from inside the nested iframe can
+  // fail to reach the OS mail client at all; window.top is always safe to *write* to
+  // cross-origin (unlike reading it), and equals window itself when not embedded.
   function handleShareClick() {
-    navigator.clipboard?.writeText(`${shareSubject}\n\n${shareMsg}`).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 10000);
-    }).catch(() => {});
+    (window.top || window).location.href = shareMailtoHref;
   }
 
   return (
@@ -235,14 +234,6 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
       {!hasItems && (
         <div className="text-[12px] text-stone-400 text-center mt-2">
           Add at least one item to continue to checkout
-        </div>
-      )}
-      {copied && (
-        <div className="flex items-start gap-2 bg-share/5 border border-share rounded-xl px-3.5 py-3 mt-3 text-[12px] text-share">
-          <IconCheck size={14} className="flex-shrink-0 mt-0.5" />
-          <span>
-            Bundle details copied to clipboard — paste them into an email, Slack, or wherever you&rsquo;d like to share this bundle.
-          </span>
         </div>
       )}
 
