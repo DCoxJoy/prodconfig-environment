@@ -101,7 +101,13 @@ export default function ConfiguratorShell() {
       });
       const data = await res.json();
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        // Navigate the top-level page, not just this iframe. BC's checkout relies on a
+        // SameSite=Strict cookie that browsers won't set/send inside a nested third-party
+        // iframe (e.g. this app embedded on a HubSpot landing page) — redirecting only the
+        // iframe leaves checkout unable to establish its session. window.top is always safe
+        // to *write* to cross-origin (unlike reading it), and equals window itself when the
+        // app isn't embedded, so this is a no-op change for the non-embedded case.
+        (window.top || window).location.href = data.checkoutUrl;
       } else {
         alert(data.error ?? 'Cart error. Please try again.');
       }
