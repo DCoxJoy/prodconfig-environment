@@ -227,8 +227,17 @@ export async function POST(request: Request) {
     // Parse custom fields and build a flat list with cf attached
     const products = allProducts.map(p => ({ ...p, cf: parseCustomFields(p.custom_fields) }));
 
-    // Exclude any product with product_status = "Request for Quote"
-    const active = products.filter(p => p.cf.product_status !== 'Request for Quote');
+    // Exclude any product with product_status = "Request for Quote", plus pre-made
+    // bundle products — "Mount and Case" (not in live use yet, kept for when it is)
+    // and "Mount Bundles" (29 SKUs live today, e.g. RAM-Adapt Kit w/ aXtion Bold MP),
+    // and CPA310HS specifically — this selector builds bundles by pairing individual
+    // case/mount/accessory SKUs, so pre-assembled bundle products aren't valid
+    // candidates for any of those slots.
+    const EXCLUDED_PRODUCT_TYPES = ['Mount and Case', 'Mount Bundles'];
+    const active = products
+      .filter(p => p.cf.product_status !== 'Request for Quote')
+      .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
+      .filter(p => p.sku !== 'CPA310HS');
 
     // ── Cases: device-specific ─────────────────────────────────────────────
     const cases = active

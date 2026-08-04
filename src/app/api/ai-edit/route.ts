@@ -167,8 +167,15 @@ Rules:
     const allProducts = await getAllProducts();
     const products = allProducts.map(p => ({ ...p, cf: parseCustomFields(p.custom_fields) }));
 
-    // Exclude RFQ products
-    const active = products.filter(p => p.cf.product_status !== 'Request for Quote');
+    // Exclude RFQ products, plus pre-made bundle products — "Mount and Case" (not in
+    // live use yet, kept for when it is), "Mount Bundles" (29 SKUs live today), and
+    // CPA310HS specifically — these aren't valid Mount/Accessory swap candidates
+    // since they're pre-assembled bundles, not individual components.
+    const EXCLUDED_PRODUCT_TYPES = ['Mount and Case', 'Mount Bundles'];
+    const active = products
+      .filter(p => p.cf.product_status !== 'Request for Quote')
+      .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
+      .filter(p => p.sku !== 'CPA310HS');
 
     // Filter by product type
     const typeFiltered = active.filter(p => p.cf.product_type === productTypeFilter);
