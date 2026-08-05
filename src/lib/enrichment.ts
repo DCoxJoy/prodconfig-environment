@@ -10,6 +10,11 @@ export interface ProductEnrichment {
   // Override BC solution_type for scoring — use when BC field is missing or incorrect.
   // Values must match BC solution_type vocabulary: 'drill down', 'adhesive', 'rail/pole'.
   solution_type_override?: string[];
+  // Accessories only — restricts this accessory to bundles whose selected case SKU is
+  // in this list (e.g. a cable kit built specifically for one case's port cover). When
+  // unset, the accessory is eligible for any case (existing device_compatibility rules
+  // still apply on top of this).
+  compatible_case_skus?: string[];
 }
 
 // In-memory cache for runtime Claude-inferred enrichment (fills gaps for SKUs not in static map).
@@ -105,7 +110,9 @@ export const PRODUCT_ENRICHMENT: Record<string, ProductEnrichment> = {
   'MCU204':    {},
   'CWX144':    { features: ['shoulder_strap'] },
   'MMU217':    { mount_surface: ['na'] },
-  'PCA213':    {},
+  // Port-cover cable kit built specifically for the aXtion Pro CWA659MP — physically
+  // incompatible with any other case's port cover design.
+  'PCA213':    { compatible_case_skus: ['CWA659MP'] },
   'CPX302':    {},
 };
 

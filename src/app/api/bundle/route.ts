@@ -258,10 +258,14 @@ export async function POST(request: Request) {
     // Tier 2: accessories with no device_compatibility (truly universal).
     // Using Tier 1 when available prevents universal accessories (e.g. tablet shoulder strap)
     // from overriding device-specific ones (e.g. iPhone belt clip holster).
+    // The Tier 1 vs Tier 2 decision is made per-case (in selectAccessoryForCase below),
+    // not globally — otherwise a Tier 1 accessory that's case-restricted via
+    // compatible_case_skus (e.g. PCA213 → CWA659MP only) would suppress every
+    // universal accessory for a device, even when paired with a different case that
+    // PCA213 doesn't fit at all.
     const allAccessories = active.filter(p => p.cf.product_type === 'Accessories');
     const specificAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).includes(deviceName));
     const universalAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).length === 0);
-    const accessories = specificAccessories.length > 0 ? specificAccessories : universalAccessories;
     const effectiveFeatures = [...new Set([...features, ...getImpliedFeatures(scenarios, isIphone)])];
 
     // ── Infer enrichment for any SKUs not yet in the static map or cache ───
@@ -280,22 +284,32 @@ export async function POST(request: Request) {
       // Results are now in runtimeEnrichmentCache, getEnrichment() picks them up automatically
     }
 
-    // ── Select best accessory ──────────────────────────────────────────────
-    const scoredAcc = accessories
-      .map(p => ({ p, score: scoreAccessory(p.name, p.sku, effectiveFeatures) }))
-      .sort((a, b) => b.score - a.score);
+    // ── Select best accessory for a given case ──────────────────────────────
+    // Per-case (not shared across bundle options) so an accessory whose enrichment
+    // restricts it to a specific case (e.g. PCA213 → CWA659MP only, via
+    // compatible_case_skus) never gets paired with a different, incompatible case.
+    function selectAccessoryForCase(caseSku: string): (typeof products)[0] | null {
+      const compatibleWithCase = (p: (typeof products)[0]) => {
+        const compatCases = getEnrichment(p.sku).compatible_case_skus;
+        return !compatCases || compatCases.includes(caseSku);
+      };
+      const specificEligible = specificAccessories.filter(compatibleWithCase);
+      const universalEligible = universalAccessories.filter(compatibleWithCase);
+      const eligible = specificEligible.length > 0 ? specificEligible : universalEligible;
 
-    let selectedAccessory: (typeof products)[0] | null = null;
-    if (scoredAcc[0]?.score > 0) {
-      selectedAccessory = scoredAcc[0].p;
-    } else {
+      const scoredAcc = eligible
+        .map(p => ({ p, score: scoreAccessory(p.name, p.sku, effectiveFeatures) }))
+        .sort((a, b) => b.score - a.score);
+
+      if (scoredAcc[0]?.score > 0) return scoredAcc[0].p;
+
       // No feature-matched accessory — fall back by priority: screen protector, shoulder strap, first in pool
       const FALLBACK_KEYWORDS = ['screen protector', 'shoulder strap', 'hand strap'];
       for (const kw of FALLBACK_KEYWORDS) {
-        const found = accessories.find(p => p.name.toLowerCase().includes(kw));
-        if (found) { selectedAccessory = found; break; }
+        const found = eligible.find(p => p.name.toLowerCase().includes(kw));
+        if (found) return found;
       }
-      if (!selectedAccessory && accessories.length > 0) selectedAccessory = accessories[0];
+      return eligible[0] ?? null;
     }
 
     // ── Sort cases by enrichment score, ensuring series diversity ──────────
@@ -354,22 +368,24 @@ export async function POST(request: Request) {
         selectedMount = scored[0]?.p ?? null;
       }
 
-      return { caseProduct, selectedMount };
+      const selectedAccessory = selectAccessoryForCase(caseProduct.sku);
+
+      return { caseProduct, selectedMount, selectedAccessory };
     });
 
     // ── Collect product IDs we need variant IDs for ────────────────────────
     const selectedIds = [
       ...caseWithMounts.map(x => x.caseProduct.id),
       ...caseWithMounts.flatMap(x => x.selectedMount ? [x.selectedMount.id] : []),
-      ...(selectedAccessory ? [selectedAccessory.id] : []),
+      ...caseWithMounts.flatMap(x => x.selectedAccessory ? [x.selectedAccessory.id] : []),
     ];
     const variantIds = await getFirstVariantIds([...new Set(selectedIds)]);
 
-    console.log(`[/api/bundle] Built for "${deviceName}": ${caseWithMounts.length} case(s), mounts=[${caseWithMounts.map(x => x.selectedMount?.sku ?? 'none').join(', ')}], accessory=${selectedAccessory?.sku ?? 'none'}`);
+    console.log(`[/api/bundle] Built for "${deviceName}": ${caseWithMounts.length} case(s), mounts=[${caseWithMounts.map(x => x.selectedMount?.sku ?? 'none').join(', ')}], accessories=[${caseWithMounts.map(x => x.selectedAccessory?.sku ?? 'none').join(', ')}]`);
     console.log(`[/api/bundle] Features sent:`, features);
 
-    // ── Build BundleOption[] — one per case, each with its own compatible mount ──
-    const options: BundleOption[] = caseWithMounts.map(({ caseProduct, selectedMount }) => {
+    // ── Build BundleOption[] — one per case, each with its own compatible mount/accessory ──
+    const options: BundleOption[] = caseWithMounts.map(({ caseProduct, selectedMount, selectedAccessory }) => {
       const items: BundleItem[] = [
         {
           type:        'Case',
