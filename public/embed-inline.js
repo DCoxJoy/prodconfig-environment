@@ -27,11 +27,33 @@
   const height = (scriptEl && scriptEl.getAttribute("data-height")) || "900px";
   const maxWidth = (scriptEl && scriptEl.getAttribute("data-max-width")) || "1500px";
 
+  // On narrow (phone-width) screens, break the iframe out of its parent
+  // container's own padding so it fills the viewport edge-to-edge instead of
+  // leaving side gutters — the parent page's padding, not this iframe's own
+  // width, is what causes that spacing. Only added once even if this script
+  // runs more than once on a page.
+  if (!document.getElementById("agc-inline-mobile-style")) {
+    const style = document.createElement("style");
+    style.id = "agc-inline-mobile-style";
+    style.textContent = `
+      @media (max-width: 640px) {
+        .agc-inline-iframe {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          margin-left: calc(50% - 50vw) !important;
+          margin-right: calc(50% - 50vw) !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   // Build the iframe — the entire configurator app, sized inline in the page's
   // own layout flow (no floating button, no open/close toggle).
   const iframe = document.createElement("iframe");
   iframe.src = `${baseUrl}/?embed=true`;
   iframe.title = "Product Configurator";
+  iframe.className = "agc-inline-iframe";
   iframe.setAttribute("allow", "payment");
   iframe.style.width = width;
   iframe.style.height = height;
