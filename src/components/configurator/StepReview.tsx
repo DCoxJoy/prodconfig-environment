@@ -188,49 +188,51 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
               <div key={i} className="border-b border-stone-200 last:border-b-0">
                 <div
                   className={[
-                    'flex items-center gap-3.5 py-5 transition-opacity',
+                    'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3.5 py-5 transition-opacity',
                     isZero ? 'opacity-40' : '',
                   ].join(' ')}
                 >
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className={[
-                        'w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white',
-                        p.productUrl ? 'cursor-pointer' : '',
-                      ].join(' ')}
-                      onClick={p.productUrl ? () => window.open(p.productUrl, '_blank', 'noopener,noreferrer') : undefined}
-                    />
-                  ) : (
-                    <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-                      <Icon size={20} />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-                    {p.productUrl ? (
-                      <a
-                        href={p.productUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[14px] font-semibold text-stone-900 leading-tight hover:text-brand hover:underline"
-                      >
-                        {p.name}
-                      </a>
+                  <div className="flex items-center gap-3.5 sm:flex-1 sm:min-w-0">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className={[
+                          'w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white',
+                          p.productUrl ? 'cursor-pointer' : '',
+                        ].join(' ')}
+                        onClick={p.productUrl ? () => window.open(p.productUrl, '_blank', 'noopener,noreferrer') : undefined}
+                      />
                     ) : (
-                      <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                      <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                        <Icon size={20} />
+                      </div>
                     )}
-                    <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
-                    <div className="text-[12px] text-stone-500 mt-0.5">
-                      {isZero
-                        ? <span className="text-stone-400 italic">Excluded from cart</span>
-                        : `$${p.unitPrice.toFixed(2)} each`
-                      }
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
+                      {p.productUrl ? (
+                        <a
+                          href={p.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[14px] font-semibold text-stone-900 leading-tight hover:text-brand hover:underline break-words"
+                        >
+                          {p.name}
+                        </a>
+                      ) : (
+                        <div className="text-[14px] font-semibold text-stone-900 leading-tight break-words">{p.name}</div>
+                      )}
+                      <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
+                      <div className="text-[12px] text-stone-500 mt-0.5">
+                        {isZero
+                          ? <span className="text-stone-400 italic">Excluded from cart</span>
+                          : `$${p.unitPrice.toFixed(2)} each`
+                        }
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:gap-1.5 sm:flex-shrink-0">
                     <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
                     <div className={[
                       'text-[14px] font-semibold text-right',

@@ -118,7 +118,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
           <div key={i} className="border-b border-stone-200 last:border-b-0">
             <div
               className={[
-                'flex items-center gap-3.5 py-4 relative transition-opacity',
+                'flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3.5 py-4 relative transition-opacity',
                 swapped  ? 'bg-[#f0faf6] -mx-2 px-2 rounded-xl mb-1' : '',
                 excluded ? 'opacity-40' : '',
               ].join(' ')}
@@ -133,42 +133,44 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
                   NOT IN CART
                 </span>
               )}
-              {p.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={p.imageUrl}
-                  alt={p.name}
-                  className={[
-                    'w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white',
-                    p.productUrl ? 'cursor-pointer' : '',
-                  ].join(' ')}
-                  onClick={p.productUrl ? () => window.open(p.productUrl, '_blank', 'noopener,noreferrer') : undefined}
-                />
-              ) : (
-                <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
-                  <Icon size={18} />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
-                {p.productUrl ? (
-                  <a
-                    href={p.productUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[14px] font-semibold text-stone-900 leading-tight hover:text-brand hover:underline"
-                  >
-                    {p.name}
-                  </a>
+              <div className="flex items-center gap-3.5 sm:flex-1 sm:min-w-0">
+                {p.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className={[
+                      'w-11 h-11 rounded-xl object-cover border border-stone-200 flex-shrink-0 bg-white',
+                      p.productUrl ? 'cursor-pointer' : '',
+                    ].join(' ')}
+                    onClick={p.productUrl ? () => window.open(p.productUrl, '_blank', 'noopener,noreferrer') : undefined}
+                  />
                 ) : (
-                  <div className="text-[14px] font-semibold text-stone-900 leading-tight">{p.name}</div>
+                  <div className="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 flex-shrink-0">
+                    <Icon size={18} />
+                  </div>
                 )}
-                <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
-                <div className="text-[12px] text-stone-500 mt-0.5">
-                  {excluded ? <em className="text-stone-400">Excluded</em> : `Qty: ${qtys[i]}`}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] text-stone-400 font-semibold uppercase tracking-widest mb-0.5">{p.type}</div>
+                  {p.productUrl ? (
+                    <a
+                      href={p.productUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[14px] font-semibold text-stone-900 leading-tight hover:text-brand hover:underline break-words"
+                    >
+                      {p.name}
+                    </a>
+                  ) : (
+                    <div className="text-[14px] font-semibold text-stone-900 leading-tight break-words">{p.name}</div>
+                  )}
+                  <div className="text-[11px] text-stone-400 font-mono mt-0.5">{p.sku}</div>
+                  <div className="text-[12px] text-stone-500 mt-0.5">
+                    {excluded ? <em className="text-stone-400">Excluded</em> : `Qty: ${qtys[i]}`}
+                  </div>
                 </div>
               </div>
-              <div className={['text-[14px] font-semibold ml-auto flex-shrink-0 text-right', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
+              <div className={['text-[14px] font-semibold text-right sm:ml-auto sm:flex-shrink-0', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
                 ${(p.unitPrice * qtys[i]).toFixed(2)}
                 {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">${p.unitPrice.toFixed(2)} ×{qtys[i]}</div>}
               </div>
