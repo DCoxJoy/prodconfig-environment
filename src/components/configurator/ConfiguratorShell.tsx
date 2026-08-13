@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { getDeviceFamily } from '../../lib/utils';
 import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
@@ -14,12 +14,12 @@ import StepReview from './StepReview';
 import StepBundle from './StepBundle';
 import StepContact from './StepContact';
 
-type StepId = 'devices' | 'features' | 'environment' | 'review' | 'bundle' | 'contact';
+type StepId = 'intro' | 'devices' | 'features' | 'environment' | 'review' | 'bundle' | 'contact';
 
 const NAV_LABELS = ['Devices', 'Features', 'Environment', 'Review', 'Bundle'];
 const MAIN_STEPS: StepId[] = ['devices', 'features', 'environment', 'review', 'bundle'];
 
-const STEP_META: Record<StepId, { q: string; sub: string; pct: number }> = {
+const STEP_META: Record<Exclude<StepId, 'intro'>, { q: string; sub: string; pct: number }> = {
   devices:     { q: 'Find your device',                              sub: 'Select your device category below, then tap your exact model — this determines which cases, mounts, and accessories we can recommend.', pct: 0   },
   features:    { q: 'What features matter most?',                    sub: 'Tell us if you need a certified rugged case, or select features that matter most for how you use your device.', pct: 25  },
   environment: { q: 'How and where do you use your device?',         sub: 'Answer a few quick questions about your daily use. Your answers determine which mount and accessories we recommend.', pct: 50  },
@@ -32,10 +32,28 @@ export default function ConfiguratorShell() {
   const { state, liveProducts, qtys, dispatch } = useConfigurator();
   const { device, certified, features, scenarios } = state;
 
-  const [step, setStep]                   = useState<StepId>('devices');
+  const [step, setStep]                   = useState<StepId>('intro');
   const [contactSource, setContactSource] = useState<'certified' | 'escalation' | 'manual'>('manual');
   const [escalationRequest, setEscalationRequest] = useState('');
   const [addingToCart, setAddingToCart]   = useState(false);
+
+  // Intro screen — a standalone splash shown on first load and after Reset, separate
+  // from the step-by-step flow below (no progress bar, no step circles).
+  if (step === 'intro') {
+    return (
+      <div className="bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
+        <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
+        <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
+        <button
+          onClick={() => setStep('devices')}
+          className="flex items-center gap-2 bg-brand text-white rounded-xl px-6 py-3.5 text-[15px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors"
+        >
+          Get Started
+          <IconArrowRight size={18} />
+        </button>
+      </div>
+    );
+  }
 
   const meta         = STEP_META[step];
   const mainStepIndex = MAIN_STEPS.indexOf(step);
@@ -120,7 +138,7 @@ export default function ConfiguratorShell() {
 
   function handleReset() {
     dispatch({ type: 'RESET' });
-    setStep('devices');
+    setStep('intro');
     setContactSource('manual');
     setEscalationRequest('');
   }
