@@ -143,7 +143,7 @@ export default function ConfiguratorShell() {
     setEscalationRequest('');
   }
 
-  const showNavRow  = step !== 'devices' && step !== 'review' && step !== 'bundle';
+  const showNavRow  = step !== 'devices' && step !== 'review' && step !== 'bundle' && step !== 'contact';
   const showNextBtn = step === 'features' || step === 'environment';
   const nextEnabled = isNextEnabled();
 

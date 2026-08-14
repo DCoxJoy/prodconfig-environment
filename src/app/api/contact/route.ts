@@ -23,8 +23,8 @@ export async function POST(request: Request) {
             { name: 'message',   value: message   ?? '' },
           ],
           context: {
-            pageUri:  'https://configurator.joyfactory.com',
-            pageName: 'Joy Factory aXtion Configurator',
+            pageUri:  'https://commerce-indol-eta-68.vercel.app',
+            pageName: 'Joy Factory Solution Bundle Builder',
           },
         }),
       }
