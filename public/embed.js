@@ -117,7 +117,13 @@
 
     /* On phone-width screens, always show the compact icon-only circle (never the
        text pill) — the widened label pill was overlapping other bottom-right page
-       widgets (e.g. a chat widget's send button) on narrow screens. */
+       widgets (e.g. a chat widget's send button) on narrow screens. Shrinking it
+       wasn't enough on its own: a chat widget commonly docks its own launcher/send
+       button in that exact same bottom-right corner, so any button there collides
+       with it once the chat panel is open. Moving the bottom-right corner variant
+       over to the bottom-left on mobile only sidesteps that entirely — the panel's
+       own slide-in side (data-position/side) is untouched, so it still opens from
+       the same edge as before, just the small trigger button relocates. */
     @media (max-width: 640px) {
       .agc-fab {
         width: 56px;
@@ -126,6 +132,12 @@
 
       .agc-fab-label {
         display: none;
+      }
+
+      .agc-pos-bottom-right {
+        right: auto;
+        left: 20px;
+        align-items: flex-start;
       }
     }
 
