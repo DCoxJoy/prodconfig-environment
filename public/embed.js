@@ -23,10 +23,13 @@
   }
 
   // Configuration options from script data attributes with defaults
-  const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // bottom-right, bottom-left, top-right, top-left
+  const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // FAB trigger button corner: bottom-right, bottom-left, top-right, top-left
   const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
-  const width = (scriptEl && scriptEl.getAttribute("data-width")) || "390px";
-  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "620px";
+  const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
+  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "100vh"; // panel height — full viewport height by default
+  // Side panel slides in from whichever edge the FAB is on (left or right), so it
+  // never opens on top of the button itself.
+  const side = position.indexOf("left") !== -1 ? "left" : "right";
 
   // Create styling
   const style = document.createElement("style");
@@ -85,33 +88,41 @@
       transform: rotate(90deg);
     }
 
-    /* Iframe Container */
+    /* Side panel — full viewport height, slides in from the left or right edge
+       (whichever side the FAB sits on), independent of the FAB's own container. */
     .agc-frame-container {
-      width: ${width};
+      position: fixed;
+      top: 0;
       height: ${height};
-      max-height: calc(100vh - 120px);
-      max-width: calc(100vw - 40px);
+      width: ${width};
+      max-height: 100vh;
+      max-width: 100vw;
       background: #020617;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
       overflow: hidden;
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
       pointer-events: none;
-      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-      display: none;
+      transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      z-index: 2147483646;
     }
-    
-    /* Frame animations based on vertical position */
-    .agc-pos-top-right .agc-frame-container, .agc-pos-top-left .agc-frame-container {
-      transform: translateY(-20px) scale(0.95);
+
+    .agc-frame-container.agc-side-right {
+      right: 0;
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      border-top-left-radius: 16px;
+      border-bottom-left-radius: 16px;
+      transform: translateX(100%);
+    }
+
+    .agc-frame-container.agc-side-left {
+      left: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      border-top-right-radius: 16px;
+      border-bottom-right-radius: 16px;
+      transform: translateX(-100%);
     }
 
     .agc-frame-container.agc-active {
-      display: block;
-      opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateX(0);
       pointer-events: auto;
     }
 
@@ -129,7 +140,7 @@
   container.className = `agc-widget-container agc-pos-${position}`;
 
   const frameContainer = document.createElement("div");
-  frameContainer.className = "agc-frame-container";
+  frameContainer.className = `agc-frame-container agc-side-${side}`;
 
   const iframe = document.createElement("iframe");
   iframe.className = "agc-iframe";
@@ -154,8 +165,11 @@
   `;
   fab.innerHTML = iconSvg;
 
-  container.appendChild(frameContainer);
+  // frameContainer is appended directly to <body>, not inside the FAB's corner
+  // container — it's a full-height side panel anchored to the left/right edge
+  // of the viewport, sized independent of the FAB's own small corner box.
   container.appendChild(fab);
+  document.body.appendChild(frameContainer);
   document.body.appendChild(container);
 
   // Reference SVG nodes directly within the FAB container
