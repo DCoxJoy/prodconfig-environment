@@ -115,6 +115,20 @@
       transform: rotate(90deg);
     }
 
+    /* On phone-width screens, always show the compact icon-only circle (never the
+       text pill) — the widened label pill was overlapping other bottom-right page
+       widgets (e.g. a chat widget's send button) on narrow screens. */
+    @media (max-width: 640px) {
+      .agc-fab {
+        width: 56px;
+        padding: 0;
+      }
+
+      .agc-fab-label {
+        display: none;
+      }
+    }
+
     /* Side panel — full viewport height, slides in from the left or right edge
        (whichever side the FAB sits on), independent of the FAB's own container. */
     .agc-frame-container {
