@@ -27,6 +27,7 @@
   const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
   const height = (scriptEl && scriptEl.getAttribute("data-height")) || "100vh"; // panel height — full viewport height by default
+  const label = (scriptEl && scriptEl.getAttribute("data-label")) || "Bundle Builder"; // text shown next to the FAB icon so it's clear what it opens
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
   const side = position.indexOf("left") !== -1 ? "left" : "right";
@@ -54,16 +55,18 @@
       transition: all 0.3s ease;
     }
     
-    /* Position variations */
-    .agc-pos-bottom-right { bottom: 20px; right: 20px; align-items: flex-end; }
-    .agc-pos-bottom-left { bottom: 20px; left: 20px; align-items: flex-start; }
+    /* Position variations — bottom offset nudged down a touch (was 20px) so the FAB
+       sits further from the app's own in-panel "Next step" button near the same corner. */
+    .agc-pos-bottom-right { bottom: 10px; right: 20px; align-items: flex-end; }
+    .agc-pos-bottom-left { bottom: 10px; left: 20px; align-items: flex-start; }
     .agc-pos-top-right { top: 20px; right: 20px; align-items: flex-end; flex-direction: column-reverse; }
     .agc-pos-top-left { top: 20px; left: 20px; align-items: flex-start; flex-direction: column-reverse; }
 
-    /* Floating Action Button (FAB) */
+    /* Floating Action Button (FAB) — icon + label pill so it's clear what it opens.
+       Collapses to a plain circle (icon only) while the panel is open. */
     .agc-fab {
-      width: 56px;
       height: 56px;
+      padding: 0 20px 0 16px;
       border-radius: 28px;
       background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
       box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
@@ -72,28 +75,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       color: white;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       outline: none;
       margin-top: 15px;
       margin-bottom: 15px;
     }
-    
+
+    .agc-fab.agc-active {
+      width: 56px;
+      padding: 0;
+    }
+
+    .agc-fab.agc-active .agc-fab-label {
+      display: none;
+    }
+
     .agc-fab:hover {
-      transform: scale(1.08) translateY(-2px);
+      transform: scale(1.04) translateY(-2px);
       box-shadow: 0 6px 24px rgba(79, 70, 229, 0.5);
     }
-    
+
     .agc-fab:active {
-      transform: scale(0.95);
+      transform: scale(0.97);
     }
-    
+
     .agc-fab svg {
       width: 24px;
       height: 24px;
+      flex-shrink: 0;
       transition: transform 0.4s ease;
     }
-    
+
     .agc-fab.agc-active svg {
       transform: rotate(90deg);
     }
@@ -174,6 +191,13 @@
     </svg>
   `;
   fab.innerHTML = iconSvg;
+
+  // Label text appended via textContent (not string interpolation) so a data-label
+  // value can never inject markup into the page.
+  const fabLabel = document.createElement("span");
+  fabLabel.className = "agc-fab-label";
+  fabLabel.textContent = label;
+  fab.appendChild(fabLabel);
 
   // frameContainer is appended directly to <body>, not inside the FAB's corner
   // container — it's a full-height side panel anchored to the left/right edge
