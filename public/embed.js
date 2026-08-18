@@ -153,6 +153,20 @@
       pointer-events: auto;
     }
 
+    /* On phone-width screens, the panel fills the full viewport instead of staying
+       a narrow (e.g. 25vw) sliver — the configured data-width/data-height only apply
+       at tablet width and up. Corner rounding/border are dropped too since the panel
+       now reaches both screen edges. */
+    @media (max-width: 640px) {
+      .agc-frame-container {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+    }
+
     .agc-iframe {
       width: 100%;
       height: 100%;
