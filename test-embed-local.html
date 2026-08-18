@@ -1,15 +1,15 @@
 <!doctype html>
 <html>
-<head><title>Local embed.js test — simulates your site header</title></head>
+<head><title>Local embed.js target test</title></head>
 <body>
-  <header style="background:#eee; padding: 20px; font-family: sans-serif;">
-    Simulated site header — the FAB button should appear bottom-right
+  <header style="background:#1a1a2e; padding: 16px 24px; font-family: sans-serif; color: white; display: flex; align-items: center; justify-content: space-between;">
+    <span>USA Header (simulated)</span>
+    <div id="usa-header-config-btn"></div>
   </header>
   <p style="font-family: sans-serif; padding: 0 20px;">
-    Rest of the page content goes here. Click the round button in the corner
-    to open the side panel.
+    Rest of the page content. The button should now sit inline in the header
+    (right side, next to the label), not floating in the browser corner.
   </p>
-
-  <script src="http://localhost:3000/embed.js"></script>
+  <script src="http://localhost:3000/embed.js" data-target="#usa-header-config-btn"></script>
 </body>
 </html>

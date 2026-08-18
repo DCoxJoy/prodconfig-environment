@@ -23,13 +23,23 @@
   }
 
   // Configuration options from script data attributes with defaults
-  const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // FAB trigger button corner: bottom-right, bottom-left, top-right, top-left
+  const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // FAB trigger button corner: bottom-right, bottom-left, top-right, top-left. Also controls which edge the panel slides from when data-target is set.
   const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
   const height = (scriptEl && scriptEl.getAttribute("data-height")) || "100vh"; // panel height — full viewport height by default
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
   const side = position.indexOf("left") !== -1 ? "left" : "right";
+
+  // Optional: render the FAB inline inside a specific page element (e.g. a header)
+  // instead of floating fixed in a viewport corner. Same data-target pattern as
+  // embed-inline.js — a CSS selector for an element already on the page. The slide-in
+  // panel itself is unaffected: it's always fixed to the viewport edge given by `side`.
+  const targetSelector = scriptEl && scriptEl.getAttribute("data-target");
+  const target = targetSelector ? document.querySelector(targetSelector) : null;
+  if (targetSelector && !target) {
+    console.error(`[Configurator Embed] data-target "${targetSelector}" was not found — falling back to a floating corner button.`);
+  }
 
   // Create styling
   const style = document.createElement("style");
@@ -168,9 +178,15 @@
   // frameContainer is appended directly to <body>, not inside the FAB's corner
   // container — it's a full-height side panel anchored to the left/right edge
   // of the viewport, sized independent of the FAB's own small corner box.
-  container.appendChild(fab);
   document.body.appendChild(frameContainer);
-  document.body.appendChild(container);
+  if (target) {
+    // Inline mode: drop the bare button into the target element, in normal document
+    // flow — no fixed positioning, no corner container/offsets.
+    target.appendChild(fab);
+  } else {
+    container.appendChild(fab);
+    document.body.appendChild(container);
+  }
 
   // Reference SVG nodes directly within the FAB container
   const iconOpen = fab.querySelector("#agc-icon-open");
