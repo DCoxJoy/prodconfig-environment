@@ -68,21 +68,26 @@
        data-target/inline mode the button is appended straight into the host page's
        target element, bypassing that wrapper entirely — Poppins matches the host
        site's other header buttons (falls back to the container's stack if Poppins
-       isn't loaded on the page). */
+       isn't loaded on the page). background/border/color carry !important: in
+       data-target mode this button is a bare <button> sitting directly in the host
+       page's own markup (e.g. inside an Elementor header), so it's exposed to that
+       page's own button/element styling — without !important a host rule with equal
+       or higher specificity can silently override the intended white/red idle look
+       (this is exactly what was happening: red background showing under red text). */
     .agc-fab {
       height: 48px;
       padding: 0 20px 0 16px;
       border-radius: 24px;
-      background: white;
+      background: white !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      border: 1.5px solid #c8291c;
+      border: 1.5px solid #c8291c !important;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      color: #c8291c;
+      color: #c8291c !important;
       font-size: 14px;
       font-weight: 600;
       white-space: nowrap;
@@ -96,7 +101,7 @@
        .agc-fab:hover below) so it stays in sync with the icon, which also uses
        currentColor and flips the same way. */
     .agc-fab-label {
-      color: inherit;
+      color: inherit !important;
       transition: color 0.3s ease;
     }
 
@@ -110,8 +115,8 @@
     }
 
     .agc-fab:hover {
-      background: #c8291c;
-      color: white;
+      background: #c8291c !important;
+      color: white !important;
       transform: scale(1.04) translateY(-2px);
       box-shadow: 0 6px 24px rgba(200, 41, 28, 0.4);
     }
