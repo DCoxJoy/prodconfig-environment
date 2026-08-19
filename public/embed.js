@@ -70,115 +70,142 @@
     .agc-pos-top-right { top: 20px; right: 20px; align-items: flex-end; flex-direction: column-reverse; }
     .agc-pos-top-left { top: 20px; left: 20px; align-items: flex-start; flex-direction: column-reverse; }
 
-    /* Floating Action Button (FAB) — icon + label pill so it's clear what it opens.
-       Collapses to a plain circle (icon only) while the panel is open. Font-family is
-       set directly here (not just on .agc-widget-container above) because in
-       data-target/inline mode the button is appended straight into the host page's
-       target element, bypassing that wrapper entirely — Poppins matches the host
-       site's other header buttons (falls back to the container's stack if Poppins
-       isn't loaded on the page). background/border/color carry !important: in
-       data-target mode this button is a bare <button> sitting directly in the host
-       page's own markup (e.g. inside an Elementor header), so it's exposed to that
-       page's own button/element styling — without !important a host rule with equal
-       or higher specificity can silently override the intended white/red idle look
-       (this is exactly what was happening: red background showing under red text). */
+    /* Floating Action Button (FAB) — styled to match the site's existing "Ask me
+       anything" AI chat launcher: a solid red outer pill containing a white inner
+       search-bar-style pill (sparkle icon + "Bundle Builder" label), with a small
+       red send-icon button tucked into its right edge. Font-family is set directly
+       here (not just on .agc-widget-container above) because in data-target/inline
+       mode the button is appended straight into the host page's target element,
+       bypassing that wrapper entirely. background/color carry !important for the
+       same data-target reason as before: a bare <button> sitting directly in host
+       page markup is exposed to that page's own button styling, which can otherwise
+       silently override ours. */
     .agc-fab {
-      height: 42px;
-      padding: 0 20px 0 16px;
-      border-radius: 21px;
-      background: white !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      height: 44px;
+      padding: 3px;
+      border-radius: 22px;
+      background: #c8291c !important;
+      border: none !important;
+      box-shadow: 0 4px 16px rgba(200, 41, 28, 0.35);
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      border: 1.5px solid #c8291c !important;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      color: #c8291c !important;
-      font-size: 14px;
-      font-weight: 600;
-      white-space: nowrap;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       outline: none;
       margin-top: 15px;
       margin-bottom: 15px;
     }
 
-    /* Label matches the button's overall color (red idle, white on hover — see
-       .agc-fab:hover below) so it stays in sync with the icon, which also uses
-       currentColor and flips the same way. */
-    .agc-fab-label {
-      color: inherit !important;
-      transition: color 0.3s ease;
-    }
-
-    .agc-fab.agc-active {
-      width: 42px;
-      padding: 0;
-    }
-
-    .agc-fab.agc-active .agc-fab-label {
-      display: none;
-    }
-
     .agc-fab:hover {
-      background: #c8291c !important;
-      color: white !important;
+      background: #a8221a !important;
       transform: scale(1.04) translateY(-2px);
-      box-shadow: 0 6px 24px rgba(200, 41, 28, 0.4);
+      box-shadow: 0 6px 22px rgba(200, 41, 28, 0.45);
+    }
+
+    .agc-fab:hover .agc-fab-send {
+      background: #a8221a;
     }
 
     .agc-fab:active {
       transform: scale(0.97);
     }
 
-    .agc-fab svg {
-      width: 24px;
-      height: 24px;
+    /* Idle content: white inner pill (sparkle icon + label) plus the red send
+       button tucked into its right edge. */
+    .agc-fab-idle {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+
+    .agc-fab-inner {
+      background: white;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+      padding: 0 4px 0 14px;
+    }
+
+    .agc-fab-sparkle {
+      width: 16px;
+      height: 16px;
+      color: #c8291c !important;
       flex-shrink: 0;
-      transition: transform 0.4s ease;
     }
 
-    .agc-fab.agc-active svg {
-      transform: rotate(90deg);
+    .agc-fab-label {
+      color: #44403c !important;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
-    /* Text-only pill above phone width: the open-state icon is dropped so the button
-       is just the "Bundle Builder" label, shortening its width — useful when placed
-       inline next to other plain-text buttons (e.g. in a header, via data-target).
-       Scoped to non-active + non-mobile: the close (X) icon while the panel is open,
-       and the icon-only circle forced on phone widths below, are untouched — both
-       still need a visible icon since no label text is showing in those states.
-       !important is needed to beat the inline display style the open/close toggle
-       sets directly on the icon element. */
-    @media (min-width: 641px) {
-      .agc-fab:not(.agc-active) #agc-icon-open {
-        display: none !important;
-      }
-
-      .agc-fab:not(.agc-active) {
-        padding: 0 20px;
-      }
+    .agc-fab-send {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: #c8291c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-left: 6px;
+      transition: background 0.3s ease;
     }
 
-    /* On phone-width screens, always show the compact icon-only circle (never the
-       text pill) — the widened label pill was overlapping other bottom-right page
-       widgets (e.g. a chat widget's send button) on narrow screens. Shrinking it
-       wasn't enough on its own: a chat widget commonly docks its own launcher/send
-       button in that exact same bottom-right corner, so any button there collides
-       with it once the chat panel is open. Moving the bottom-right corner variant
-       over to the bottom-left on mobile only sidesteps that entirely — the panel's
-       own slide-in side (data-position/side) is untouched, so it still opens from
-       the same edge as before, just the small trigger button relocates. */
+    .agc-fab-send svg {
+      width: 14px;
+      height: 14px;
+      color: white;
+    }
+
+    /* Collapsed-circle icons — sparkle for idle-and-collapsed, X for open. Both
+       hidden by default; shown only in their respective states below. */
+    #agc-icon-collapsed,
+    #agc-icon-close {
+      display: none;
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+
+    /* Panel open: collapse to a plain red circle with a white close (X) icon,
+       regardless of viewport width — no room for the full pill while it's open. */
+    .agc-fab.agc-active {
+      width: 44px;
+      padding: 0;
+    }
+
+    .agc-fab.agc-active .agc-fab-idle {
+      display: none;
+    }
+
+    .agc-fab.agc-active #agc-icon-close {
+      display: block;
+    }
+
+    /* On phone-width screens, collapse to the same plain red circle while idle too
+       (sparkle icon only, no label/send button) — the full chat-bar-style pill is
+       too wide for a floating corner widget on a small screen. Moving the
+       bottom-right corner variant over to the bottom-left on mobile only sidesteps
+       a common collision with third-party chat widgets docked in that same corner —
+       the panel's own slide-in side (data-position/side) is untouched. */
     @media (max-width: 640px) {
-      .agc-fab {
-        width: 42px;
+      .agc-fab:not(.agc-active) {
+        width: 44px;
         padding: 0;
       }
 
-      .agc-fab-label {
+      .agc-fab:not(.agc-active) .agc-fab-idle {
         display: none;
+      }
+
+      .agc-fab:not(.agc-active) #agc-icon-collapsed {
+        display: block;
       }
 
       .agc-pos-bottom-right {
@@ -267,24 +294,35 @@
   const fab = document.createElement("button");
   fab.className = "agc-fab";
   fab.ariaLabel = "Configure Product";
-  
-  // Custom cog/lightning bolt svg icon
-  const iconSvg = `
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="agc-icon-open">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+
+  // Idle content: white inner pill (sparkle icon + label) with a red send-icon
+  // button tucked into its right edge, plus the two collapsed-circle icons (sparkle
+  // for idle-collapsed, X for open) shown/hidden purely via CSS off the .agc-active
+  // class and media queries — see the toggleWidget function below. Label text is
+  // set separately via textContent (not string interpolation) so a data-label value
+  // can never inject markup into the page.
+  fab.innerHTML = `
+    <span class="agc-fab-idle">
+      <span class="agc-fab-inner">
+        <svg class="agc-fab-sparkle" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8Z" />
+        </svg>
+        <span class="agc-fab-label"></span>
+      </span>
+      <span class="agc-fab-send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h13M13 6l6 6-6 6" />
+        </svg>
+      </span>
+    </span>
+    <svg id="agc-icon-collapsed" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8Z" />
     </svg>
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="agc-icon-close" style="display:none;">
+    <svg id="agc-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   `;
-  fab.innerHTML = iconSvg;
-
-  // Label text appended via textContent (not string interpolation) so a data-label
-  // value can never inject markup into the page.
-  const fabLabel = document.createElement("span");
-  fabLabel.className = "agc-fab-label";
-  fabLabel.textContent = label;
-  fab.appendChild(fabLabel);
+  fab.querySelector(".agc-fab-label").textContent = label;
 
   // frameContainer is appended directly to <body>, not inside the FAB's corner
   // container — it's a full-height side panel anchored to the left/right edge
@@ -299,26 +337,15 @@
     document.body.appendChild(container);
   }
 
-  // Reference SVG nodes directly within the FAB container
-  const iconOpen = fab.querySelector("#agc-icon-open");
-  const iconClose = fab.querySelector("#agc-icon-close");
-
-  // Toggle Functionality
+  // Toggle Functionality — icon/label visibility for every state (idle pill, open,
+  // collapsed mobile) is driven purely by CSS off the .agc-active class and media
+  // queries (see the .agc-fab rules above), so toggling is just a class flip.
   let isOpen = false;
 
   function toggleWidget() {
     isOpen = !isOpen;
-    if (isOpen) {
-      frameContainer.classList.add("agc-active");
-      fab.classList.add("agc-active");
-      if (iconOpen) iconOpen.style.display = "none";
-      if (iconClose) iconClose.style.display = "block";
-    } else {
-      frameContainer.classList.remove("agc-active");
-      fab.classList.remove("agc-active");
-      if (iconOpen) iconOpen.style.display = "block";
-      if (iconClose) iconClose.style.display = "none";
-    }
+    frameContainer.classList.toggle("agc-active", isOpen);
+    fab.classList.toggle("agc-active", isOpen);
   }
 
   fab.addEventListener("click", toggleWidget);
