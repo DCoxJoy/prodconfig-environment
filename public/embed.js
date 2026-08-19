@@ -38,8 +38,16 @@
   // panel itself is unaffected: it's always fixed to the viewport edge given by `side`.
   const targetSelector = scriptEl && scriptEl.getAttribute("data-target");
   const target = targetSelector ? document.querySelector(targetSelector) : null;
+
+  // When data-target is configured, a missing target means "this page shouldn't show
+  // the button at all" (e.g. the script runs site-wide via WPCode, but only the USA
+  // header template has the #axtion-config-btn anchor — every other locale/header
+  // doesn't). Bail out entirely rather than falling back to a floating corner button,
+  // so those pages render nothing instead of an unwanted floating widget. Floating
+  // mode remains the default only for deployments that never set data-target at all.
   if (targetSelector && !target) {
-    console.error(`[Configurator Embed] data-target "${targetSelector}" was not found — falling back to a floating corner button.`);
+    console.warn(`[Configurator Embed] data-target "${targetSelector}" was not found on this page — the Bundle Builder button will not be shown here.`);
+    return;
   }
 
   // Create styling
