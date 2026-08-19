@@ -115,6 +115,24 @@
       transform: rotate(90deg);
     }
 
+    /* Text-only pill above phone width: the open-state icon is dropped so the button
+       is just the "Bundle Builder" label, shortening its width — useful when placed
+       inline next to other plain-text buttons (e.g. in a header, via data-target).
+       Scoped to non-active + non-mobile: the close (X) icon while the panel is open,
+       and the icon-only circle forced on phone widths below, are untouched — both
+       still need a visible icon since no label text is showing in those states.
+       !important is needed to beat the inline display style the open/close toggle
+       sets directly on the icon element. */
+    @media (min-width: 641px) {
+      .agc-fab:not(.agc-active) #agc-icon-open {
+        display: none !important;
+      }
+
+      .agc-fab:not(.agc-active) {
+        padding: 0 20px;
+      }
+    }
+
     /* On phone-width screens, always show the compact icon-only circle (never the
        text pill) — the widened label pill was overlapping other bottom-right page
        widgets (e.g. a chat widget's send button) on narrow screens. Shrinking it
