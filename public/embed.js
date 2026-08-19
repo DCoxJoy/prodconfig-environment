@@ -157,10 +157,10 @@
     /* In the "laptop" range where this site's own header buttons (Contact Sales,
        Shop Now) wrap their own label onto two lines and narrow, instead of staying
        single-line, match that same treatment — otherwise Bundle Builder stays wide
-       and forces the main nav to wrap onto a second row. 1475px matches the width
+       and forces the main nav to wrap onto a second row. 1499px matches the width
        reported where the nav starts piling up; adjust if the site's own breakpoint
        for its button stacking turns out to sit at a slightly different width. */
-    @media (min-width: 641px) and (max-width: 1475px) {
+    @media (min-width: 641px) and (max-width: 1499px) {
       .agc-fab:not(.agc-active) {
         width: 90px;
         height: auto;
