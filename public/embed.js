@@ -63,20 +63,26 @@
     .agc-pos-top-left { top: 20px; left: 20px; align-items: flex-start; flex-direction: column-reverse; }
 
     /* Floating Action Button (FAB) — icon + label pill so it's clear what it opens.
-       Collapses to a plain circle (icon only) while the panel is open. */
+       Collapses to a plain circle (icon only) while the panel is open. Font-family is
+       set directly here (not just on .agc-widget-container above) because in
+       data-target/inline mode the button is appended straight into the host page's
+       target element, bypassing that wrapper entirely — Poppins matches the host
+       site's other header buttons (falls back to the container's stack if Poppins
+       isn't loaded on the page). */
     .agc-fab {
-      height: 56px;
+      height: 48px;
       padding: 0 20px 0 16px;
-      border-radius: 28px;
-      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
-      border: none;
+      border-radius: 24px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      border: 1.5px solid #c8291c;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      color: white;
+      color: #c8291c;
       font-size: 14px;
       font-weight: 600;
       white-space: nowrap;
@@ -86,8 +92,16 @@
       margin-bottom: 15px;
     }
 
+    /* Label matches the button's overall color (red idle, white on hover — see
+       .agc-fab:hover below) so it stays in sync with the icon, which also uses
+       currentColor and flips the same way. */
+    .agc-fab-label {
+      color: inherit;
+      transition: color 0.3s ease;
+    }
+
     .agc-fab.agc-active {
-      width: 56px;
+      width: 48px;
       padding: 0;
     }
 
@@ -96,8 +110,10 @@
     }
 
     .agc-fab:hover {
+      background: #c8291c;
+      color: white;
       transform: scale(1.04) translateY(-2px);
-      box-shadow: 0 6px 24px rgba(79, 70, 229, 0.5);
+      box-shadow: 0 6px 24px rgba(200, 41, 28, 0.4);
     }
 
     .agc-fab:active {
@@ -144,7 +160,7 @@
        the same edge as before, just the small trigger button relocates. */
     @media (max-width: 640px) {
       .agc-fab {
-        width: 56px;
+        width: 48px;
         padding: 0;
       }
 
