@@ -162,27 +162,6 @@
       }
     }
 
-    /* In the "laptop" range where this site's own header buttons (Contact Sales,
-       Shop Now) wrap their own label onto two lines and narrow, instead of staying
-       single-line, match that same treatment — otherwise Bundle Builder stays wide
-       and forces the main nav to wrap onto a second row. 1560px matches the width
-       reported where the nav starts piling up; adjust if the site's own breakpoint
-       for its button stacking turns out to sit at a slightly different width. */
-    @media (min-width: 641px) and (max-width: 1560px) {
-      .agc-fab:not(.agc-active) {
-        width: 90px;
-        height: auto;
-        min-height: 42px;
-        padding: 8px 6px;
-      }
-
-      .agc-fab-label {
-        white-space: normal;
-        line-height: 1.2;
-        text-align: center;
-      }
-    }
-
     /* On phone-width screens, always show the compact icon-only circle (never the
        text pill) — the widened label pill was overlapping other bottom-right page
        widgets (e.g. a chat widget's send button) on narrow screens. Shrinking it
