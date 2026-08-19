@@ -75,9 +75,9 @@
        or higher specificity can silently override the intended white/red idle look
        (this is exactly what was happening: red background showing under red text). */
     .agc-fab {
-      height: 48px;
+      height: 42px;
       padding: 0 20px 0 16px;
-      border-radius: 24px;
+      border-radius: 21px;
       background: white !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -106,7 +106,7 @@
     }
 
     .agc-fab.agc-active {
-      width: 48px;
+      width: 42px;
       padding: 0;
     }
 
@@ -164,7 +164,7 @@
       .agc-fab:not(.agc-active) {
         width: 90px;
         height: auto;
-        min-height: 48px;
+        min-height: 42px;
         padding: 8px 6px;
       }
 
@@ -186,7 +186,7 @@
        the same edge as before, just the small trigger button relocates. */
     @media (max-width: 640px) {
       .agc-fab {
-        width: 48px;
+        width: 42px;
         padding: 0;
       }
 
