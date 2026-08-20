@@ -96,7 +96,7 @@
       padding: 4px 16px;
       border-radius: 20px !important;
       background: white !important;
-      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      border: 1px solid #c8291c !important;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       cursor: pointer;
@@ -110,7 +110,6 @@
     }
 
     .agc-fab:hover {
-      border-color: #c8291c !important;
       transform: scale(1.04) translateY(-2px);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
     }
