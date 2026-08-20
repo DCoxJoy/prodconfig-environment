@@ -183,10 +183,7 @@
 
     /* On phone-width screens, collapse to the same plain red circle while idle too
        (sparkle icon only, no label/send button) — the full chat-bar-style pill is
-       too wide for a floating corner widget on a small screen. Moving the
-       bottom-right corner variant over to the bottom-left on mobile only sidesteps
-       a common collision with third-party chat widgets docked in that same corner —
-       the panel's own slide-in side (data-position/side) is untouched. */
+       too wide for a floating corner widget on a small screen. */
     @media (max-width: 640px) {
       .agc-fab:not(.agc-active) {
         width: 44px;
@@ -200,12 +197,6 @@
 
       .agc-fab:not(.agc-active) #agc-icon-collapsed {
         display: block;
-      }
-
-      .agc-pos-bottom-right {
-        right: auto;
-        left: 20px;
-        align-items: flex-start;
       }
     }
 
