@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { getDeviceFamily } from '../../lib/utils';
@@ -58,6 +58,15 @@ export default function ConfiguratorShell() {
     // fade-out has finished playing.
     setTimeout(() => setIntroOverlayVisible(false), 500);
   }
+
+  // Reset scroll to the top of the page whenever the visible step changes, so a
+  // user who scrolled down mid-step (e.g. a long feature list) always lands at
+  // the top of the next view instead of wherever they left off. window here is
+  // the app's own scrolling context (the iframe's document when embedded), not
+  // the host page, so this never jumps the surrounding WordPress page.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [displayStep]);
 
   const meta         = STEP_META[displayStep];
   const mainStepIndex = MAIN_STEPS.indexOf(displayStep);
