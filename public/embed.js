@@ -161,34 +161,25 @@
       transition: color 0.3s ease;
     }
 
-    /* Collapsed-circle icons — sparkle for idle-and-collapsed, X for open. Both
-       hidden by default; shown only in their respective states below. Red (not
-       white) since the collapsed circle is the same white pill background as the
-       idle state, just round instead of pill-shaped. */
-    #agc-icon-collapsed,
-    #agc-icon-close {
+    /* Collapsed-circle icon for the mobile idle state (sparkle only). Hidden by
+       default; shown only on phone widths below. Red, since the collapsed circle
+       is the same white pill background as the idle state, just round instead of
+       pill-shaped. */
+    #agc-icon-collapsed {
       display: none;
       width: 20px;
       height: 20px;
       color: #c8291c;
     }
 
-    /* Panel open: collapse to a plain circle with a red close (X) icon, regardless
-       of viewport width — no room for the full pill while it's open. border-radius
-       is bumped back up to a true half-of-height circle here (the idle pill's 20px
-       isn't quite enough to fully round a 44×44 box). */
+    /* Panel open: hide the FAB entirely rather than collapsing it to a close (X)
+       circle — the app's own in-panel header now carries the close control (see
+       the "message" listener below), so a second close button floating over the
+       page was redundant. Reopening happens the same way it always did: the FAB
+       simply isn't there while the panel is open, and reappears once it closes
+       (via the header's X or by whatever else calls toggleWidget). */
     .agc-fab.agc-active {
-      width: 44px;
-      padding: 0;
-      border-radius: 22px !important;
-    }
-
-    .agc-fab.agc-active .agc-fab-idle {
       display: none;
-    }
-
-    .agc-fab.agc-active #agc-icon-close {
-      display: block;
     }
 
     /* On phone-width screens, collapse to the same plain red circle while idle too
@@ -295,11 +286,13 @@
   fab.ariaLabel = "Configure Product";
 
   // Idle content: sparkle icon + label with a red send-icon button tucked into the
-  // pill's right edge, plus the two collapsed-circle icons (sparkle for
-  // idle-collapsed, X for open) shown/hidden purely via CSS off the .agc-active
-  // class and media queries — see the toggleWidget function below. Label text is
-  // set separately via textContent (not string interpolation) so a data-label value
-  // can never inject markup into the page.
+  // pill's right edge, plus the collapsed-circle icon shown on mobile idle widths
+  // (sparkle only) — shown/hidden purely via CSS off the .agc-active class and
+  // media queries — see the toggleWidget function below. The FAB has no "open"
+  // state of its own to render (see .agc-fab.agc-active above): it just hides
+  // while the panel is open, since the panel's own header carries the close
+  // control now. Label text is set separately via textContent (not string
+  // interpolation) so a data-label value can never inject markup into the page.
   fab.innerHTML = `
     <span class="agc-fab-idle">
       <svg class="agc-fab-sparkle" viewBox="0 0 24 24" fill="currentColor">
@@ -314,9 +307,6 @@
     </span>
     <svg id="agc-icon-collapsed" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8Z" />
-    </svg>
-    <svg id="agc-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   `;
   fab.querySelector(".agc-fab-label").textContent = label;
