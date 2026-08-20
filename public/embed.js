@@ -347,6 +347,20 @@
 
   fab.addEventListener("click", toggleWidget);
 
+  // The app's own in-panel header now carries the close (X) control (next to
+  // "Bundle Builder" / "Powered by The Joy Factory"), matching the site's chat
+  // widget design — clicking it posts a message from inside the iframe rather
+  // than calling anything cross-origin directly, since the panel-open state
+  // lives out here in the host page, not inside the iframe. event.source is
+  // checked against our own iframe's contentWindow so only that iframe (not
+  // some other embedded frame on the page) can trigger the close.
+  window.addEventListener("message", function (event) {
+    if (event.source !== iframe.contentWindow) return;
+    if (event.data && event.data.type === "agc-close" && isOpen) {
+      toggleWidget();
+    }
+  });
+
   // Initialize state
   if (startOpen) {
     toggleWidget();
