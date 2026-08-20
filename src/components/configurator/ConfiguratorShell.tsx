@@ -288,7 +288,7 @@ export default function ConfiguratorShell() {
       {introOverlayVisible && (
         <div
           className={[
-            'absolute inset-0 z-20 flex items-center justify-center rounded-2xl overflow-hidden',
+            'absolute inset-0 z-20 flex flex-col items-center rounded-2xl overflow-hidden',
             'transition-opacity duration-500 ease-out',
             introFading ? 'opacity-0' : 'opacity-100',
           ].join(' ')}
@@ -298,6 +298,9 @@ export default function ConfiguratorShell() {
             style={{ backgroundImage: 'url(/intro-bg.jpg)' }}
           />
           <div className="absolute inset-0 bg-white/25" />
+          {/* Unequal top/bottom spacers (1:2) shift the card up by a third of its
+              centered gap-to-top distance, instead of sitting dead-center. */}
+          <div style={{ flex: '1 0 0%' }} />
           <div className="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
             <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
             <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
@@ -309,6 +312,7 @@ export default function ConfiguratorShell() {
               <IconArrowRight size={18} />
             </button>
           </div>
+          <div style={{ flex: '2 0 0%' }} />
         </div>
       )}
 
