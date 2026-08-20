@@ -278,19 +278,27 @@ export default function ConfiguratorShell() {
         )}
       </div>
 
-      {/* Intro overlay — sits on top of the (already-mounted) Devices step underneath,
-          glassy/blurred so the app reads as visible-but-covered rather than blank.
-          Get Started fades this out in place, "uncovering" the real app instead of
-          swapping to a separate screen. */}
+      {/* Intro overlay — sits on top of the (already-mounted) Devices step underneath.
+          The blurred backdrop is a static screenshot of that same step (/intro-bg.jpg,
+          via a dedicated scaled + blurred layer) rather than a live backdrop-blur of
+          the real DOM — gives a consistent, deliberately "frosted glass" look
+          regardless of what the live app actually looks like underneath. Get Started
+          fades this whole overlay out in place, "uncovering" the real (unblurred, now
+          interactive) app instead of swapping to a separate screen. */}
       {introOverlayVisible && (
         <div
           className={[
-            'absolute inset-0 z-20 flex items-center justify-center rounded-2xl',
-            'backdrop-blur-xl bg-stone-100/70 transition-all duration-500 ease-out',
-            introFading ? 'opacity-0 backdrop-blur-none' : 'opacity-100',
+            'absolute inset-0 z-20 flex items-center justify-center rounded-2xl overflow-hidden',
+            'transition-opacity duration-500 ease-out',
+            introFading ? 'opacity-0' : 'opacity-100',
           ].join(' ')}
         >
-          <div className="bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
+          <div
+            className="absolute inset-0 scale-110 bg-cover bg-center blur-xl"
+            style={{ backgroundImage: 'url(/intro-bg.jpg)' }}
+          />
+          <div className="absolute inset-0 bg-white/25" />
+          <div className="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
             <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
             <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
             <button

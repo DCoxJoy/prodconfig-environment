@@ -1,4 +1,15 @@
 (function () {
+  // Bundle Builder is USA-only for now — the WPCode snippet runs site-wide via
+  // Header & Footer, but /apac, /tw, and /jp are other locale versions of the site
+  // that shouldn't show the button at all, regardless of positioning mode
+  // (floating corner or data-target/header-inline). Bail out before anything else
+  // runs so those pages render nothing.
+  const EXCLUDED_PATH_PREFIXES = ["/apac", "/tw", "/jp"];
+  const currentPath = window.location.pathname.toLowerCase();
+  if (EXCLUDED_PATH_PREFIXES.some((prefix) => currentPath === prefix || currentPath.startsWith(prefix + "/"))) {
+    return;
+  }
+
   // Safe extraction of script element
   let scriptEl = document.currentScript;
   if (!scriptEl) {
