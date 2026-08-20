@@ -23,7 +23,7 @@ export default function AppHeader() {
   }
 
   return (
-    <div className="bg-brand px-5 py-3.5 flex items-center justify-between gap-3">
+    <div className="bg-brand rounded-t-[10px] px-5 py-3.5 flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 rounded-full border-2 border-white/40 bg-white/10 flex items-center justify-center flex-shrink-0">
           <IconTool size={20} className="text-white" stroke={1.75} />
