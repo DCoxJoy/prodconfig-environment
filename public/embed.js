@@ -82,7 +82,7 @@
        which can otherwise silently override ours. */
     .agc-fab {
       height: 44px;
-      padding: 4px 4px 4px 16px;
+      padding: 4px 0 4px 16px;
       border-radius: 22px;
       background: white !important;
       border: 1px solid rgba(0, 0, 0, 0.08) !important;
@@ -92,6 +92,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       outline: none;
       margin-top: 15px;
@@ -113,7 +114,11 @@
     }
 
     /* Idle content: sparkle icon + label, balanced with equal gaps on both sides of
-       the label, and the red send button tucked snug against the pill's own edge. */
+       the label, and the red send button as an end-cap flush against the pill's own
+       right edge (not an inset circle) — .agc-fab's overflow: hidden + border-radius
+       clips it into the same curve as the pill's own end, so the whole button reads
+       as one continuous pill (white body, red cap) rather than a pill with a
+       separate circle badge floating inside it. */
     .agc-fab-idle {
       display: flex;
       align-items: center;
@@ -136,14 +141,14 @@
     }
 
     .agc-fab-send {
-      width: 30px;
-      height: 30px;
-      border-radius: 999px;
+      width: 40px;
+      align-self: stretch;
       background: #c8291c;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      margin-left: auto;
       transition: background 0.3s ease;
     }
 
