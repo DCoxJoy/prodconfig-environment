@@ -26,7 +26,7 @@
   const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // FAB trigger button corner: bottom-right, bottom-left, top-right, top-left. Also controls which edge the panel slides from when data-target is set.
   const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
-  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "100vh"; // panel height — full viewport height by default
+  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "70vh"; // panel height — a shorter floating window by default, sized closer to the site's own chat widget (was 100vh)
   const label = (scriptEl && scriptEl.getAttribute("data-label")) || "Bundle Builder"; // text shown next to the FAB icon so it's clear what it opens
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
@@ -200,14 +200,17 @@
       }
     }
 
-    /* Side panel — full viewport height, slides in from the left or right edge
-       (whichever side the FAB sits on), independent of the FAB's own container. */
+    /* Floating panel — bottom-anchored near the FAB (like the site's own chat
+       widget) instead of pinned to the very top of the viewport, so a shorter
+       data-height (70vh default, was 100vh) leaves open space above it rather than
+       an empty gap below. Slides in from the left or right edge (whichever side the
+       FAB sits on), independent of the FAB's own container. */
     .agc-frame-container {
       position: fixed;
-      top: 0;
+      bottom: 20px;
       height: ${height};
       width: ${width};
-      max-height: 100vh;
+      max-height: calc(100vh - 40px);
       max-width: 100vw;
       background: #020617;
       box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
@@ -220,16 +223,14 @@
     .agc-frame-container.agc-side-right {
       right: 0;
       border-left: 1px solid rgba(255, 255, 255, 0.08);
-      border-top-left-radius: 16px;
-      border-bottom-left-radius: 16px;
+      border-radius: 16px;
       transform: translateX(100%);
     }
 
     .agc-frame-container.agc-side-left {
       left: 0;
       border-right: 1px solid rgba(255, 255, 255, 0.08);
-      border-top-right-radius: 16px;
-      border-bottom-right-radius: 16px;
+      border-radius: 16px;
       transform: translateX(-100%);
     }
 
@@ -238,14 +239,17 @@
       pointer-events: auto;
     }
 
-    /* On phone-width screens, the panel fills the full viewport instead of staying
-       a narrow (e.g. 25vw) sliver — the configured data-width/data-height only apply
-       at tablet width and up. Corner rounding/border are dropped too since the panel
-       now reaches both screen edges. */
+    /* On phone-width screens, revert to the full-screen app experience instead of
+       the smaller floating desktop card — fills the entire viewport (both width and
+       height) with no rounding, regardless of the configured data-width/data-height. */
     @media (max-width: 640px) {
       .agc-frame-container {
+        top: 0 !important;
+        bottom: 0 !important;
         width: 100vw !important;
+        height: 100vh !important;
         max-width: 100vw !important;
+        max-height: 100vh !important;
         border-radius: 0 !important;
         border-left: none !important;
         border-right: none !important;
