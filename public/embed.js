@@ -26,7 +26,7 @@
   const position = (scriptEl && scriptEl.getAttribute("data-position")) || "bottom-right"; // FAB trigger button corner: bottom-right, bottom-left, top-right, top-left. Also controls which edge the panel slides from when data-target is set.
   const startOpen = scriptEl && scriptEl.getAttribute("data-open") === "true";
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
-  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "70vh"; // panel height — a shorter floating window by default, sized closer to the site's own chat widget (was 100vh)
+  const height = (scriptEl && scriptEl.getAttribute("data-height")) || "74vh"; // panel height — a shorter floating window by default, sized closer to the site's own chat widget (was 100vh)
   const label = (scriptEl && scriptEl.getAttribute("data-label")) || "Bundle Builder"; // text shown next to the FAB icon so it's clear what it opens
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
