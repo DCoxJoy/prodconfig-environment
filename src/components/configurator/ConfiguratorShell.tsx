@@ -312,6 +312,19 @@ export default function ConfiguratorShell() {
               <IconArrowRight size={18} />
             </button>
           </div>
+          <p className="relative text-[11px] text-stone-500 text-center leading-relaxed max-w-[340px] mt-4 px-6">
+            This widget uses a cookie to interact with website visitors and to provide your chat history. To find
+            out more about this cookie, see our{' '}
+            <a
+              href="https://thejoyfactory.com/privacy-policy-2/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-stone-600 hover:text-stone-800"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
           <div style={{ flex: '2 0 0%' }} />
         </div>
       )}
