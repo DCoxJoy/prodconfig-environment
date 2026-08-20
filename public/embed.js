@@ -70,23 +70,23 @@
     .agc-pos-top-right { top: 20px; right: 20px; align-items: flex-end; flex-direction: column-reverse; }
     .agc-pos-top-left { top: 20px; left: 20px; align-items: flex-start; flex-direction: column-reverse; }
 
-    /* Floating Action Button (FAB) — styled to match the site's existing "Ask me
-       anything" AI chat launcher: a solid red outer pill containing a white inner
-       search-bar-style pill (sparkle icon + "Bundle Builder" label), with a small
-       red send-icon button tucked into its right edge. Font-family is set directly
-       here (not just on .agc-widget-container above) because in data-target/inline
-       mode the button is appended straight into the host page's target element,
-       bypassing that wrapper entirely. background/color carry !important for the
-       same data-target reason as before: a bare <button> sitting directly in host
-       page markup is exposed to that page's own button styling, which can otherwise
-       silently override ours. */
+    /* Floating Action Button (FAB) — a single white pill (sparkle icon + "Bundle
+       Builder" label, balanced padding on both sides) with a small red send-icon
+       button tucked into its right edge — no colored background behind the pill
+       itself, just a soft shadow/border for definition against the page. Font-family
+       is set directly here (not just on .agc-widget-container above) because in
+       data-target/inline mode the button is appended straight into the host page's
+       target element, bypassing that wrapper entirely. background/border/color carry
+       !important for the same data-target reason as before: a bare <button> sitting
+       directly in host page markup is exposed to that page's own button styling,
+       which can otherwise silently override ours. */
     .agc-fab {
       height: 44px;
-      padding: 3px;
+      padding: 4px 4px 4px 16px;
       border-radius: 22px;
-      background: #c8291c !important;
-      border: none !important;
-      box-shadow: 0 4px 16px rgba(200, 41, 28, 0.35);
+      background: white !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       cursor: pointer;
       display: flex;
@@ -99,9 +99,9 @@
     }
 
     .agc-fab:hover {
-      background: #a8221a !important;
+      border-color: #c8291c !important;
       transform: scale(1.04) translateY(-2px);
-      box-shadow: 0 6px 22px rgba(200, 41, 28, 0.45);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
     }
 
     .agc-fab:hover .agc-fab-send {
@@ -112,22 +112,13 @@
       transform: scale(0.97);
     }
 
-    /* Idle content: white inner pill (sparkle icon + label) plus the red send
-       button tucked into its right edge. */
+    /* Idle content: sparkle icon + label, balanced with equal gaps on both sides of
+       the label, and the red send button tucked snug against the pill's own edge. */
     .agc-fab-idle {
       display: flex;
       align-items: center;
-      height: 100%;
-    }
-
-    .agc-fab-inner {
-      background: white;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
       gap: 8px;
-      height: 100%;
-      padding: 0 4px 0 14px;
+      width: 100%;
     }
 
     .agc-fab-sparkle {
@@ -153,7 +144,6 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      margin-left: 6px;
       transition: background 0.3s ease;
     }
 
@@ -164,17 +154,19 @@
     }
 
     /* Collapsed-circle icons — sparkle for idle-and-collapsed, X for open. Both
-       hidden by default; shown only in their respective states below. */
+       hidden by default; shown only in their respective states below. Red (not
+       white) since the collapsed circle is the same white pill background as the
+       idle state, just round instead of pill-shaped. */
     #agc-icon-collapsed,
     #agc-icon-close {
       display: none;
       width: 20px;
       height: 20px;
-      color: white;
+      color: #c8291c;
     }
 
-    /* Panel open: collapse to a plain red circle with a white close (X) icon,
-       regardless of viewport width — no room for the full pill while it's open. */
+    /* Panel open: collapse to a plain circle with a red close (X) icon, regardless
+       of viewport width — no room for the full pill while it's open. */
     .agc-fab.agc-active {
       width: 44px;
       padding: 0;
@@ -295,20 +287,18 @@
   fab.className = "agc-fab";
   fab.ariaLabel = "Configure Product";
 
-  // Idle content: white inner pill (sparkle icon + label) with a red send-icon
-  // button tucked into its right edge, plus the two collapsed-circle icons (sparkle
-  // for idle-collapsed, X for open) shown/hidden purely via CSS off the .agc-active
+  // Idle content: sparkle icon + label with a red send-icon button tucked into the
+  // pill's right edge, plus the two collapsed-circle icons (sparkle for
+  // idle-collapsed, X for open) shown/hidden purely via CSS off the .agc-active
   // class and media queries — see the toggleWidget function below. Label text is
   // set separately via textContent (not string interpolation) so a data-label value
   // can never inject markup into the page.
   fab.innerHTML = `
     <span class="agc-fab-idle">
-      <span class="agc-fab-inner">
-        <svg class="agc-fab-sparkle" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8Z" />
-        </svg>
-        <span class="agc-fab-label"></span>
-      </span>
+      <svg class="agc-fab-sparkle" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8Z" />
+      </svg>
+      <span class="agc-fab-label"></span>
       <span class="agc-fab-send">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 12h13M13 6l6 6-6 6" />
