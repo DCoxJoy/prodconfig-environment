@@ -83,7 +83,7 @@
     .agc-fab {
       height: 44px;
       padding: 4px 0 4px 16px;
-      border-radius: 22px;
+      border-radius: 20px !important;
       background: white !important;
       border: 1px solid rgba(0, 0, 0, 0.08) !important;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -171,10 +171,13 @@
     }
 
     /* Panel open: collapse to a plain circle with a red close (X) icon, regardless
-       of viewport width — no room for the full pill while it's open. */
+       of viewport width — no room for the full pill while it's open. border-radius
+       is bumped back up to a true half-of-height circle here (the idle pill's 20px
+       isn't quite enough to fully round a 44×44 box). */
     .agc-fab.agc-active {
       width: 44px;
       padding: 0;
+      border-radius: 22px !important;
     }
 
     .agc-fab.agc-active .agc-fab-idle {
@@ -195,6 +198,7 @@
       .agc-fab:not(.agc-active) {
         width: 44px;
         padding: 0;
+        border-radius: 22px !important;
       }
 
       .agc-fab:not(.agc-active) .agc-fab-idle {
