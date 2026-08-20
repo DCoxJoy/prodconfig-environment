@@ -37,26 +37,30 @@ export default function ConfiguratorShell() {
   const [escalationRequest, setEscalationRequest] = useState('');
   const [addingToCart, setAddingToCart]   = useState(false);
 
-  // Intro screen — a standalone splash shown on first load and after Reset, separate
-  // from the step-by-step flow below (no progress bar, no step circles).
-  if (step === 'intro') {
-    return (
-      <div className="bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
-        <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
-        <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
-        <button
-          onClick={() => setStep('devices')}
-          className="flex items-center gap-2 bg-brand text-white rounded-xl px-6 py-3.5 text-[15px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors"
-        >
-          Get Started
-          <IconArrowRight size={18} />
-        </button>
-      </div>
-    );
+  // Intro overlay — shown on first load and after Reset, layered on top of the
+  // (already-mounted, blurred) Devices step underneath rather than replacing it, so
+  // it reads as translucent glass over the first page instead of a separate screen.
+  // introOverlayVisible/introFading are separate from `step` so the overlay can play
+  // its fade-out transition after `step` has already switched to 'devices' — see
+  // handleGetStarted.
+  const [introOverlayVisible, setIntroOverlayVisible] = useState(true);
+  const [introFading, setIntroFading]                 = useState(false);
+
+  // What the app shell actually renders — falls back to 'devices' while the intro
+  // overlay covers the screen, so the content blurred behind it is the real first
+  // step rather than nothing.
+  const displayStep = step === 'intro' ? 'devices' : step;
+
+  function handleGetStarted() {
+    setStep('devices');
+    setIntroFading(true);
+    // Matches the overlay's own transition-duration below — unmount only once the
+    // fade-out has finished playing.
+    setTimeout(() => setIntroOverlayVisible(false), 500);
   }
 
-  const meta         = STEP_META[step];
-  const mainStepIndex = MAIN_STEPS.indexOf(step);
+  const meta         = STEP_META[displayStep];
+  const mainStepIndex = MAIN_STEPS.indexOf(displayStep);
   const navStep      = mainStepIndex >= 0 ? mainStepIndex : 4;
 
   function isNextEnabled(): boolean {
@@ -141,14 +145,16 @@ export default function ConfiguratorShell() {
     setStep('intro');
     setContactSource('manual');
     setEscalationRequest('');
+    setIntroFading(false);
+    setIntroOverlayVisible(true);
   }
 
-  const showNavRow  = step !== 'devices' && step !== 'review' && step !== 'bundle' && step !== 'contact';
-  const showNextBtn = step === 'features' || step === 'environment';
+  const showNavRow  = displayStep !== 'devices' && displayStep !== 'review' && displayStep !== 'bundle' && displayStep !== 'contact';
+  const showNextBtn = displayStep === 'features' || displayStep === 'environment';
   const nextEnabled = isNextEnabled();
 
   const nextHint = showNextBtn && !nextEnabled
-    ? (step === 'features' ? 'Select at least one feature to continue' : 'Answer all questions to continue')
+    ? (displayStep === 'features' ? 'Select at least one feature to continue' : 'Answer all questions to continue')
     : '';
 
   /* ── breadcrumb pieces ─────────────────────────────────────────────────── */
@@ -159,7 +165,7 @@ export default function ConfiguratorShell() {
   const answeredEnv = activeEnvQs.filter(q => !!scenarios[q.key as keyof typeof scenarios]).length;
 
   return (
-    <div>
+    <div className="relative">
       {/* ── Top bar ────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <StepNav steps={NAV_LABELS} currentStep={navStep} />
@@ -187,7 +193,7 @@ export default function ConfiguratorShell() {
           </div>
 
           {/* Breadcrumb */}
-          {step !== 'devices' && (
+          {displayStep !== 'devices' && (
             <div className="flex gap-1.5 items-center flex-wrap text-[12px] text-stone-400 mb-2.5">
               {device && (
                 <>
@@ -213,23 +219,23 @@ export default function ConfiguratorShell() {
 
         {/* Step content */}
         <div>
-          {step === 'devices'     && <StepDevices onDeviceSelected={() => setStep('features')} />}
-          {step === 'features'    && <StepFeatures onCertifiedYes={() => goContactSales('certified')} />}
-          {step === 'environment' && <StepEnvironment />}
-          {step === 'review'      && (
+          {displayStep === 'devices'     && <StepDevices onDeviceSelected={() => setStep('features')} />}
+          {displayStep === 'features'    && <StepFeatures onCertifiedYes={() => goContactSales('certified')} />}
+          {displayStep === 'environment' && <StepEnvironment />}
+          {displayStep === 'review'      && (
             <StepReview
               onConfirm={() => setStep('bundle')}
               onEscalate={(req) => goContactSales('escalation', req)}
             />
           )}
-          {step === 'bundle'  && (
+          {displayStep === 'bundle'  && (
             <StepBundle
               onContactSales={() => goContactSales('manual')}
               onFeatureGap={(req) => goContactSales('escalation', req)}
               onAddToCart={handleAddToCart}
             />
           )}
-          {step === 'contact' && (
+          {displayStep === 'contact' && (
             <StepContact
               source={contactSource}
               escalationRequest={escalationRequest}
@@ -271,6 +277,32 @@ export default function ConfiguratorShell() {
           </div>
         )}
       </div>
+
+      {/* Intro overlay — sits on top of the (already-mounted) Devices step underneath,
+          glassy/blurred so the app reads as visible-but-covered rather than blank.
+          Get Started fades this out in place, "uncovering" the real app instead of
+          swapping to a separate screen. */}
+      {introOverlayVisible && (
+        <div
+          className={[
+            'absolute inset-0 z-20 flex items-center justify-center rounded-2xl',
+            'backdrop-blur-xl bg-stone-100/70 transition-all duration-500 ease-out',
+            introFading ? 'opacity-0 backdrop-blur-none' : 'opacity-100',
+          ].join(' ')}
+        >
+          <div className="bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
+            <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
+            <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
+            <button
+              onClick={handleGetStarted}
+              className="flex items-center gap-2 bg-brand text-white rounded-xl px-6 py-3.5 text-[15px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors"
+            >
+              Get Started
+              <IconArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add-to-cart overlay */}
       {addingToCart && (
