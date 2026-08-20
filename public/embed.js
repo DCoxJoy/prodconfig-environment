@@ -240,6 +240,20 @@
       pointer-events: auto;
     }
 
+    /* Tablet range (iPad Mini/Air/Pro portrait and similar) — the default 25vw
+       desktop width is too cramped to use comfortably once a device drops below
+       laptop-class screen widths but is still well above the phone breakpoint, so
+       widen the panel to 40vw here. 641px picks up right where the phone
+       breakpoint below leaves off; 1024px is the standard iPad portrait width
+       (iPad Pro 12.9" portrait) — above that, landscape tablets and laptops are
+       wide enough for the default 25vw to stay comfortable. Height is unaffected,
+       still the same bottom-anchored floating card as desktop. */
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .agc-frame-container {
+        width: 40vw;
+      }
+    }
+
     /* On phone-width screens, revert to the full-screen app experience instead of
        the smaller floating desktop card — fills the entire viewport (both width and
        height) with no rounding, regardless of the configured data-width/data-height. */
