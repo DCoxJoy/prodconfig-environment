@@ -39,6 +39,10 @@
   const width = (scriptEl && scriptEl.getAttribute("data-width")) || "25vw"; // panel width — a quarter of the viewport by default
   const height = (scriptEl && scriptEl.getAttribute("data-height")) || "74vh"; // panel height — a shorter floating window by default, sized closer to the site's own chat widget (was 100vh)
   const label = (scriptEl && scriptEl.getAttribute("data-label")) || "Bundle Builder"; // text shown next to the FAB icon so it's clear what it opens
+  // Channel-partner branded/catalog-scoped variant (see CLAUDE.partner-mode.md) — when
+  // set, the iframe loads /p/{partner} instead of the default unbranded app. Unset by
+  // default, so every existing deployment is unaffected.
+  const partner = scriptEl && scriptEl.getAttribute("data-partner");
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
   const side = position.indexOf("left") !== -1 ? "left" : "right";
@@ -289,7 +293,7 @@
 
   const iframe = document.createElement("iframe");
   iframe.className = "agc-iframe";
-  iframe.src = `${baseUrl}/?embed=true`;
+  iframe.src = partner ? `${baseUrl}/p/${encodeURIComponent(partner)}?embed=true` : `${baseUrl}/?embed=true`;
   iframe.title = "Product Configurator Widget";
   iframe.setAttribute("allow", "payment");
 

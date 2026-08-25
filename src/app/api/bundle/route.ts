@@ -8,6 +8,7 @@ import { getAllProducts, getFirstVariantIds, BcProductFull } from '../../../lib/
 import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
 import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
 import { ALL_FEATURES } from '../../../lib/catalog';
+import { applyPartnerAllowlist } from '../../../lib/partners';
 import { BundleItem, BundleOption, FeatureId, type IphoneScenarios, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
@@ -212,6 +213,7 @@ interface BundleRequest {
   isIphone: boolean;
   features: FeatureId[];
   scenarios: Partial<IphoneScenarios & TabletScenarios>;
+  partnerSlug?: string;
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
@@ -219,7 +221,7 @@ interface BundleRequest {
 export async function POST(request: Request) {
   try {
     const body: BundleRequest = await request.json();
-    const { deviceName, isIphone, features, scenarios } = body;
+    const { deviceName, isIphone, features, scenarios, partnerSlug } = body;
 
     // Fetch all BC products (cached 5 min)
     const allProducts = await getAllProducts();
@@ -234,10 +236,13 @@ export async function POST(request: Request) {
     // case/mount/accessory SKUs, so pre-assembled bundle products aren't valid
     // candidates for any of those slots.
     const EXCLUDED_PRODUCT_TYPES = ['Mount and Case', 'Mount Bundles'];
-    const active = products
-      .filter(p => p.cf.product_status !== 'Request for Quote')
-      .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
-      .filter(p => p.sku !== 'CPA310HS');
+    const active = applyPartnerAllowlist(
+      products
+        .filter(p => p.cf.product_status !== 'Request for Quote')
+        .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
+        .filter(p => p.sku !== 'CPA310HS'),
+      partnerSlug,
+    );
 
     // ── Cases: device-specific ─────────────────────────────────────────────
     const cases = active

@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAllProducts, getFirstVariantIds, BcProductFull } from '../../../lib/bigcommerce';
+import { applyPartnerAllowlist } from '../../../lib/partners';
 import { BundleItem, FeatureId, IphoneScenarios, TabletScenarios } from '../../../types';
 
 const client = new Anthropic();
@@ -64,6 +65,7 @@ interface AiEditRequest {
   isIphone: boolean;
   features: FeatureId[];
   scenarios: Partial<IphoneScenarios & TabletScenarios>;
+  partnerSlug?: string;
 }
 
 interface Pass1Result {
@@ -86,7 +88,7 @@ interface Pass2Result {
 export async function POST(request: Request) {
   try {
     const body: AiEditRequest = await request.json();
-    const { userMessage, currentBundle, deviceName, isIphone } = body;
+    const { userMessage, currentBundle, deviceName, isIphone, partnerSlug } = body;
 
     // Format current bundle for Claude context — Case marked as locked
     const bundleContext = currentBundle
@@ -172,10 +174,13 @@ Rules:
     // CPA310HS specifically — these aren't valid Mount/Accessory swap candidates
     // since they're pre-assembled bundles, not individual components.
     const EXCLUDED_PRODUCT_TYPES = ['Mount and Case', 'Mount Bundles'];
-    const active = products
-      .filter(p => p.cf.product_status !== 'Request for Quote')
-      .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
-      .filter(p => p.sku !== 'CPA310HS');
+    const active = applyPartnerAllowlist(
+      products
+        .filter(p => p.cf.product_status !== 'Request for Quote')
+        .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
+        .filter(p => p.sku !== 'CPA310HS'),
+      partnerSlug,
+    );
 
     // Filter by product type
     const typeFiltered = active.filter(p => p.cf.product_type === productTypeFilter);

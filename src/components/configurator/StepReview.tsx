@@ -6,6 +6,7 @@ import { BP_IPHONE, BP_TABLET } from '../../lib/catalog';
 import { getDeviceFamily, isIphoneFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
+import { usePartner } from '../../lib/PartnerContext';
 import QtyControl from '../ui/QtyControl';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -16,6 +17,7 @@ interface StepReviewProps {
 
 export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
   const { state, liveProducts, liveBundleOptions, qtys, selectedBundleOption, dispatch } = useConfigurator();
+  const partner = usePartner();
   const { device, features, scenarios, editNote, appliedEdits } = state;
 
   const family   = getDeviceFamily(device?.id ?? '');
@@ -48,7 +50,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
     fetch('/api/bundle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios }),
+      body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios, partnerSlug: partner?.slug }),
     })
       .then(async r => {
         if (!r.ok) throw new Error(`Bundle API error: ${r.status}`);
@@ -70,6 +72,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
       .finally(() => { if (!cancelled) setBundleLoading(false); });
 
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- partner is static for the page's lifetime, doesn't need to retrigger the fetch
   }, [liveBundleOptions]); // re-run whenever liveBundleOptions resets to null (device change or HMR)
 
   // Bundle option tabs come from live BC data when available, else from hardcoded catalog
@@ -105,6 +108,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
           isIphone,
           features,
           scenarios,
+          partnerSlug: partner?.slug,
         }),
       });
       const data = await res.json();

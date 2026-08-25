@@ -10,7 +10,11 @@ import { IconTool, IconX } from '@tabler/icons-react';
 // there's nothing for it to close otherwise. Clicking it posts a message to
 // the parent page rather than calling window.close()/history, since the app
 // itself can't collapse the panel — that's DOM embed.js owns on the host page.
-export default function AppHeader() {
+//
+// partnerName (from the /p/[partnerSlug] route) replaces "BUNDLE BUILDER" with the
+// partner's own name; the "Powered by The Joy Factory" subtitle is unchanged either
+// way. Undefined on the default route, which keeps its title exactly as before.
+export default function AppHeader({ partnerName }: { partnerName?: string }) {
   const [isEmbedded, setIsEmbedded] = useState(false);
 
   useEffect(() => {
@@ -29,7 +33,7 @@ export default function AppHeader() {
           <IconTool size={20} className="text-white" stroke={1.75} />
         </div>
         <div className="min-w-0">
-          <div className="text-white font-bold text-[14px] tracking-wide leading-tight truncate">BUNDLE BUILDER</div>
+          <div className="text-white font-bold text-[14px] tracking-wide leading-tight truncate">{partnerName ?? 'BUNDLE BUILDER'}</div>
           <div className="text-white/75 text-[12px] leading-tight truncate">Powered by The Joy Factory</div>
         </div>
       </div>

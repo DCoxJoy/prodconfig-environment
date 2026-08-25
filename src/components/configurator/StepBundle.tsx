@@ -7,6 +7,7 @@ import {
 import { getDeviceFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
+import { usePartner } from '../../lib/PartnerContext';
 import { buildReasoningParagraph } from '../../lib/reasoning';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -19,6 +20,9 @@ interface StepBundleProps {
 export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }: StepBundleProps) {
   const { state, liveProducts, qtys } = useConfigurator();
   const { device, features, scenarios, appliedEdits } = state;
+  // Partner-branded variants (Cell Medics LTD, Partner One) don't get a direct
+  // checkout — the default (unbranded) Bundle Builder is unaffected, partner === null.
+  const hideAddToCart = !!usePartner();
 
   const family = getDeviceFamily(device?.id ?? '');
 
@@ -203,23 +207,33 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
       </div>
 
       {/* ── CTA grid ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <button
-          disabled={!hasItems}
-          onClick={onAddToCart}
-          className={[
-            'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold transition-colors',
-            hasItems
-              ? 'bg-brand text-white cursor-pointer border-none'
-              : 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed',
-          ].join(' ')}
-        >
-          <IconShoppingCart size={18} />
-          Add to cart
-        </button>
+      <div className={`grid ${hideAddToCart ? 'grid-cols-2' : 'grid-cols-3'} gap-2.5`}>
+        {!hideAddToCart && (
+          <button
+            disabled={!hasItems}
+            onClick={onAddToCart}
+            className={[
+              'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold transition-colors',
+              hasItems
+                ? 'bg-brand text-white cursor-pointer border-none'
+                : 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed',
+            ].join(' ')}
+          >
+            <IconShoppingCart size={18} />
+            Add to cart
+          </button>
+        )}
         <button
           onClick={() => onContactSales('manual')}
-          className="flex flex-col items-center justify-center gap-1.5 bg-white border border-stone-200 rounded-xl py-3.5 text-[12px] font-semibold text-stone-700 cursor-pointer hover:bg-stone-50 transition-colors"
+          className={[
+            'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold cursor-pointer transition-colors',
+            // Partner variants have no Add to cart CTA, so Contact sales takes over
+            // its solid brand-red styling as the primary action instead of the
+            // default white/outline look.
+            hideAddToCart
+              ? 'bg-brand text-white border-none hover:bg-brand-hover'
+              : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50',
+          ].join(' ')}
         >
           <span className="text-[18px] leading-none">✉</span>
           Contact sales
@@ -233,7 +247,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
         </button>
       </div>
 
-      {!hasItems && (
+      {!hideAddToCart && !hasItems && (
         <div className="text-[12px] text-stone-400 text-center mt-2">
           Add at least one item to continue to checkout
         </div>

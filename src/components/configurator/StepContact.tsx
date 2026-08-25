@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { IconSend, IconShield, IconInfoCircle, IconAlertCircle } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
+import { usePartner } from '../../lib/PartnerContext';
 
 interface StepContactProps {
   source: 'certified' | 'escalation' | 'manual';
@@ -19,9 +20,13 @@ const LABEL = 'block text-[11px] font-semibold text-stone-500 mb-1';
 export default function StepContact({ source, escalationRequest, onBack }: StepContactProps) {
   const { state, liveProducts, qtys } = useConfigurator();
   const { device } = state;
+  const partner = usePartner();
 
+  // Pre-filled, not locked — the lead came in through this partner's embed, so their
+  // name is a sensible default for "Company," but the visitor can still overwrite it
+  // (e.g. if they're filling this out on the partner's behalf for a different company).
   const [form, setForm] = useState({
-    firstname: '', lastname: '', company: '', industry: '',
+    firstname: '', lastname: '', company: partner?.name ?? '', industry: '',
     email: '', phone: '', notes: '',
   });
   const [submitting, setSubmitting] = useState(false);
