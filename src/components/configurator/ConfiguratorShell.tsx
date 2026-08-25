@@ -308,7 +308,7 @@ export default function ConfiguratorShell() {
             className="absolute inset-0 scale-110 bg-cover bg-center blur-xl"
             style={{ backgroundImage: 'url(/intro-bg.jpg)' }}
           />
-          <div className="absolute inset-0 bg-white/25" />
+          <div className="absolute inset-0 bg-white/60" />
           {/* Unequal top/bottom spacers (1:2) shift the card up by a third of its
               centered gap-to-top distance, instead of sitting dead-center. */}
           <div style={{ flex: '1 0 0%' }} />
