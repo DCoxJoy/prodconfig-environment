@@ -303,13 +303,23 @@ export async function POST(request: Request) {
 
       if (scoredAcc[0]?.score > 0) return scoredAcc[0].p;
 
-      // No feature-matched accessory — fall back by priority: screen protector, shoulder strap, first in pool
+      // No feature-matched accessory. A case-restricted Tier 1 accessory
+      // (compatible_case_skus, e.g. PCA213 → CWA659MP only) exists for a narrow
+      // physical-fit reason, not a general device preference, so it shouldn't win this
+      // no-score fallback ahead of a genuinely universal default like the shoulder
+      // strap — only device-wide Tier 1 accessories (no compatible_case_skus, e.g. the
+      // iPhone belt clip holster) keep the "always the default for this device"
+      // fallback behavior.
+      const fallbackEligible = specificEligible.filter(p => !getEnrichment(p.sku).compatible_case_skus);
+      const fallbackPool = fallbackEligible.length > 0 ? fallbackEligible : universalEligible;
+
+      // Fall back by priority: screen protector, shoulder strap, hand strap, first in pool
       const FALLBACK_KEYWORDS = ['screen protector', 'shoulder strap', 'hand strap'];
       for (const kw of FALLBACK_KEYWORDS) {
-        const found = eligible.find(p => p.name.toLowerCase().includes(kw));
+        const found = fallbackPool.find(p => p.name.toLowerCase().includes(kw));
         if (found) return found;
       }
-      return eligible[0] ?? null;
+      return fallbackPool[0] ?? null;
     }
 
     // ── Sort cases by enrichment score, ensuring series diversity ──────────
