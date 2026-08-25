@@ -290,25 +290,23 @@ export default function ConfiguratorShell() {
       </div>
 
       {/* Intro overlay — sits on top of the (already-mounted) Devices step underneath.
-          The blurred backdrop is a static screenshot of that same step (/intro-bg.jpg,
-          via a dedicated scaled + blurred layer) rather than a live backdrop-blur of
-          the real DOM — gives a consistent, deliberately "frosted glass" look
-          regardless of what the live app actually looks like underneath. Get Started
-          fades this whole overlay out in place, "uncovering" the real (unblurred, now
-          interactive) app instead of swapping to a separate screen. */}
+          The blurred backdrop is a live backdrop-blur of the real DOM behind it, not a
+          static screenshot — a static image (an earlier iteration used /intro-bg.jpg)
+          only ever matches one theme, so once partner brand colors existed it produced
+          a visibly wrong-colored blur under Cell Medics/Partner One's own accent color.
+          A live blur always matches whatever's actually rendered underneath, for any
+          current or future partner, with no separate screenshot asset to keep in sync.
+          Get Started fades this whole overlay out in place, "uncovering" the real
+          (unblurred, now interactive) app instead of swapping to a separate screen. */}
       {introOverlayVisible && (
         <div
           className={[
             'absolute inset-0 z-20 flex flex-col items-center rounded-2xl overflow-hidden',
+            'backdrop-blur-xl bg-white/40',
             'transition-opacity duration-500 ease-out',
             introFading ? 'opacity-0' : 'opacity-100',
           ].join(' ')}
         >
-          <div
-            className="absolute inset-0 scale-110 bg-cover bg-center blur-xl"
-            style={{ backgroundImage: 'url(/intro-bg.jpg)' }}
-          />
-          <div className="absolute inset-0 bg-white/60" />
           {/* Unequal top/bottom spacers (1:2) shift the card up by a third of its
               centered gap-to-top distance, instead of sitting dead-center. */}
           <div style={{ flex: '1 0 0%' }} />
