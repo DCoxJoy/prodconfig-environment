@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
+import { usePartner } from '../../lib/PartnerContext';
 import { getDeviceFamily } from '../../lib/utils';
 import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
 import ProgressBar from '../ui/ProgressBar';
@@ -31,6 +32,7 @@ const STEP_META: Record<Exclude<StepId, 'intro'>, { q: string; sub: string; pct:
 export default function ConfiguratorShell() {
   const { state, liveProducts, qtys, dispatch } = useConfigurator();
   const { device, certified, features, scenarios } = state;
+  const partner = usePartner();
 
   const [step, setStep]                   = useState<StepId>('intro');
   const [contactSource, setContactSource] = useState<'certified' | 'escalation' | 'manual'>('manual');
@@ -311,7 +313,7 @@ export default function ConfiguratorShell() {
               centered gap-to-top distance, instead of sitting dead-center. */}
           <div style={{ flex: '1 0 0%' }} />
           <div className="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
-            <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">Start Here</div>
+            <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">{partner?.name ?? 'Start Here'}</div>
             <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
             <button
               onClick={handleGetStarted}
