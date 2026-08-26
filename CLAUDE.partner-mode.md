@@ -84,9 +84,11 @@ production) — merged to `main` and live once that review was done.
     can't be performed here; what was verified instead is that the generated mailto:
     URLs are correctly percent-encoded (see the `+`-vs-`%20` fix above) and that no
     `localStorage`/`sessionStorage` is used anywhere in the partner flow.
-  - The checklist's example config used `slug: "partner-one-it"`; the actual slug was
-    left as `partner-one` to avoid breaking the already-deployed `/p/partner-one` URL
-    and any embed snippet already pointed at it. One-line change if it should match.
+  - The checklist's example config used `slug: "partner-one-it"`; the slug was
+    initially left as `partner-one` to avoid breaking the already-deployed
+    `/p/partner-one` URL and any embed snippet already pointed at it, then renamed to
+    `partner-one-it` once requested (no embed snippets were live on the old URL yet).
+    Current live route is `/p/partner-one-it`.
 - Verified end-to-end (Playwright): default app and Cell Medics (no `contactEmail`)
   byte-for-byte unaffected on every path (Bundle-step buttons, certified-yes,
   escalation); Partner One IT customer mode shows Contact sales (mailto to

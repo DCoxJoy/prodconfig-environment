@@ -110,7 +110,7 @@ actually live in production on `main`, for orientation. The default app (`/`) is
 byte-for-byte unaffected by any of this; every behavior below only ever activates on a
 partner route.
 
-- **Two live partners:** `cell-medics` ("Cell Medics LTD") and `partner-one`
+- **Two live partners:** `cell-medics` ("Cell Medics LTD") and `partner-one-it`
   ("Partner One IT") — config in `src/lib/partners.ts`. Adding a partner, a SKU
   allowlist, a brand color, or a contact email is a one-line edit there, never a code
   change.

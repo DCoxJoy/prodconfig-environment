@@ -23,8 +23,8 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     brandColor: '#ea526f', // Cell Medics LTD's own brand color
     contactEmail: 'service@cellmedics.ca', // placeholder, confirmed usable for now
   },
-  'partner-one': {
-    slug: 'partner-one',
+  'partner-one-it': {
+    slug: 'partner-one-it',
     name: 'Partner One IT',
     skuAllowlist: [], // populate once this partner provides their SKU list
     brandColor: '#0071EB', // Partner One's own brand color

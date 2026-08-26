@@ -57,7 +57,7 @@ source ~/.nvm/nvm.sh && nvm use 20.20.2
 npm run dev
 ```
 The app runs at [http://localhost:3000](http://localhost:3000). Channel-partner routes
-are at `/p/cell-medics` and `/p/partner-one` (append `?mode=rep` for the sales-rep view).
+are at `/p/cell-medics` and `/p/partner-one-it` (append `?mode=rep` for the sales-rep view).
 
 ---
 
