@@ -21,8 +21,7 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     name: 'Cell Medics LTD',
     skuAllowlist: [], // populate once Cell Medics LTD provides their SKU list
     brandColor: '#ea526f', // Cell Medics LTD's own brand color
-    // contactEmail not yet provided by Cell Medics LTD — Contact Sales keeps using the
-    // original HubSpot form until one is added here.
+    contactEmail: 'service@cellmedics.ca', // placeholder, confirmed usable for now
   },
   'partner-one': {
     slug: 'partner-one',
