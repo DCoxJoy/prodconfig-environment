@@ -253,7 +253,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
             className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border border-share bg-white text-share hover:bg-share/5 transition-colors cursor-pointer"
           >
             <IconShare size={18} />
-            Share bundle
+            {partner ? 'Share bundle quote' : 'Share bundle'}
           </button>
         )}
       </div>
@@ -274,7 +274,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
           ) : (
             <>
               <p>* &ldquo;Contact sales&rdquo; opens your email client with our sales team pre-loaded. Add any additional recipients as needed.</p>
-              <p>* &ldquo;Share bundle&rdquo; lets you share this bundle with your team or procurement contact via email.</p>
+              <p>* &ldquo;Share bundle quote&rdquo; lets you share this bundle with your team or procurement contact via email.</p>
             </>
           )}
           <p className="border-t border-stone-200 pt-2 mt-2">

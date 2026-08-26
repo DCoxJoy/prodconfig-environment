@@ -26,7 +26,7 @@ Every changed line should trace back to the actual request. If a diff drifts int
 
 ---
 
-## CURRENT STATUS — PHASE 2 COMPLETE + CONTACT FORM + SHARE BUNDLE WORKING
+## CURRENT STATUS — PHASE 2 COMPLETE + CONTACT FORM + SHARE BUNDLE + CHANNEL-PARTNER MODE (V2) WORKING
 
 **All phases complete and working.** Do not delete or rebuild from scratch. Read this section before making any changes.
 
@@ -103,6 +103,39 @@ Every changed line should trace back to the actual request. If a diff drifts int
 - **`embed.js` FAB hides entirely while the panel is open, instead of collapsing to a close (X) circle** — now that the app's own in-panel header carries the close control (see the bullet above), the FAB's old collapsed-circle-with-red-X "open" state was a redundant second close button floating over the host page. `.agc-fab.agc-active` was simplified from the sizing/border-radius rules that turned it into a circle to a single `display: none`; the `#agc-icon-close` SVG (and its now-unused CSS rule) were removed from the FAB's markup entirely since nothing shows it anymore. The FAB reappears automatically once the panel closes (via the header's X, or however else `toggleWidget()` gets called) — same underlying toggle as before, just nothing rendered for the FAB in the "open" state now. Mobile idle collapse-to-circle (`:not(.agc-active)`, unrelated state) is untouched. Verified with Playwright: FAB is visible before opening, hidden while the panel is open (with the in-panel header's close button confirmed present instead), and reappears after closing via that header button.
 - **App-wide header, matching the site's chat-widget design** — new `src/components/ui/AppHeader.tsx` renders a persistent red title bar (badge icon in a ringed circle + "BUNDLE BUILDER" + "Powered by The Joy Factory") above the app on every step, including the intro splash. It's rendered in `page.tsx` above the `page-outer` padded wrapper (not inside `ConfiguratorShell`), so it sits outside the intro overlay's `absolute inset-0` scope and reads as fixed chrome above the changing content rather than something the overlay could cover. The close (X) button only renders when the app detects it's actually embedded (`?embed=true` in the iframe src *and* `window.parent !== window`, checked client-side in a `useEffect` — a direct/standalone visit has nothing to close, so no button shows there). Clicking it does `window.parent.postMessage({ type: 'agc-close' }, '*')` rather than anything that assumes same-origin, since the app can be embedded on any WordPress domain. `embed.js` listens for that message (`event.source === iframe.contentWindow` gate, so only its own iframe can trigger it) and calls the same `toggleWidget()` the FAB itself uses, closing the floating panel — the FAB's own click-to-close behavior is untouched, this is an additional path into the same toggle. Scoped to the `embed.js` floating-panel flow only; `embed-inline.js`'s permanently-inline embed has no panel to close, so its iframe doesn't listen for the message and the header's X is a no-op there (not currently a use case that's been asked for). Verified with Playwright: standalone visit shows the header with 2-line badge+text and no X; a simulated `?embed=true` iframe inside a parent page shows the X, and clicking it delivers `{ type: 'agc-close' }` to the parent's `message` listener.
 
+### Channel-Partner Mode (V2) — live on `/p/[partnerSlug]`
+
+Full design/history lives in **`CLAUDE.partner-mode.md`** — this is a summary of what's
+actually live in production on `main`, for orientation. The default app (`/`) is
+byte-for-byte unaffected by any of this; every behavior below only ever activates on a
+partner route.
+
+- **Two live partners:** `cell-medics` ("Cell Medics LTD") and `partner-one`
+  ("Partner One IT") — config in `src/lib/partners.ts`. Adding a partner, a SKU
+  allowlist, a brand color, or a contact email is a one-line edit there, never a code
+  change.
+- **Branding:** partner name replaces "BUNDLE BUILDER" in the header and the intro
+  splash's kicker; `brandColor` (if set) overrides `--color-brand`/`--color-brand-hover`
+  for the whole app via an inline style, so every `bg-brand`/`text-brand`/`border-brand`
+  utility picks it up automatically — no component touches partner color directly.
+- **SKU scoping:** `applyPartnerAllowlist()` filters `/api/bundle` and `/api/ai-edit`'s
+  candidate pool to a partner's `skuAllowlist` when non-empty; empty (both partners,
+  currently) is a full no-op.
+- **No Add to cart for any partner** — replaced by Contact Sales + Share Bundle
+  (or, once `contactEmail` is set, "Send a Quote" alone in rep mode — see below).
+- **Rep/customer mailto end-flow, gated on `PartnerConfig.contactEmail`:** once a
+  partner has a `contactEmail`, every "contact sales" entry point in the app
+  (certified-yes, the unmet-feature escalation banner, and the Bundle step's own
+  button) skips the HubSpot-backed form entirely and hands off to a `mailto:` instead —
+  no lead data captured for that partner's traffic. `?mode=rep` (blank `To:`, `cc:` the
+  partner) shows a single "Send a Quote" button; `?mode=customer` (the default) shows
+  Contact Sales (`to:` the partner) + Share Bundle. Both partners have `contactEmail`
+  set today, so both are live on this flow. `data-mode`/`data-partner` on
+  `embed.js`/`embed-inline.js` forward through to the iframe's `?mode=`/`/p/{slug}`.
+- **Plain-text only** — mailto: bodies can't render HTML/tables in any mail client;
+  this is a hard platform limitation, not a gap. A real HTML "quote" email would need
+  a backend email-sending service (Resend/SendGrid), which is a deliberate future item.
+
 ### Key files
 | File | Purpose |
 |------|---------|
@@ -125,6 +158,12 @@ Every changed line should trace back to the actual request. If a diff drifts int
 | `src/lib/aiEdit.ts` | **Superseded** — retained for reference; no longer imported |
 | `src/components/ui/HubSpotForm.tsx` | **Superseded** — retained; embed approach abandoned |
 | `src/types/index.ts` | `BundleItem` — `productUrl` (BC product page link), `unmetFeatureLabels` (disclosure banner) |
+| `src/lib/partners.ts` | `PartnerConfig` + `PARTNERS` map — slug, name, `brandColor`, `skuAllowlist`, `contactEmail`. Single source of truth for every partner |
+| `src/lib/PartnerContext.tsx` | `usePartner()` / `usePartnerMode()` — partner identity + rep/customer mode, `null`/`'customer'` on the default (no-partner) flow |
+| `src/lib/partnerMailto.ts` | `buildPartnerMailto()` — the one shared mailto: builder for both "Send a Quote" (rep) and "Contact sales" (customer); plain-text, `encodeURIComponent`-encoded |
+| `src/app/p/[partnerSlug]/page.tsx` | Partner route — resolves slug + `?mode=` server-side, 404s on an unknown slug or `PARTNER_MODE_ENABLED=false` |
+| `src/components/ConfiguratorApp.tsx` | Shared shell (`AppHeader` + `page-outer` + providers + `ConfiguratorShell`) rendered by both `/` and `/p/[partnerSlug]` |
+| `src/components/configurator/StepPartnerContact.tsx` | Replaces `StepContact` for the 'contact' step whenever `partner.contactEmail` is set — mailto confirmation, not a form |
 
 ---
 

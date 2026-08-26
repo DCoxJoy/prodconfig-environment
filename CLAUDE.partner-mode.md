@@ -1,15 +1,18 @@
 # Addendum: Channel-Partner Mode
 
-**Status:** Implemented on the `partner-mode` branch, not yet merged to `main`. This
-document specifies an extension to the architecture described in `CLAUDE.md`. It does
-not replace or modify that document — `CLAUDE.md` continues to describe the app as it
-behaves on `main`; this file is updated instead as partner-mode work lands here.
+**Status:** Live in production on `main` — both the original partner-mode work (routing,
+branding, SKU scoping) and the V2 rep/customer end-flow below have been merged and
+deployed. This document specifies an extension to the architecture described in
+`CLAUDE.md`. It does not replace or modify that document — see `CLAUDE.md`'s own
+"Channel-Partner Mode (V2)" section for a concise, current-state summary; this file
+remains the detailed build history/reference.
 
-### Implementation notes — V2 rep/customer end-flow (branch `v2-rep-customer-flow`)
+### Implementation notes — V2 rep/customer end-flow
 
-Built against a partner-supplied implementation checklist. Not yet merged to `main` —
-per that checklist's own deployment section, this is meant to go to a Vercel preview
-for review first, unlike the smaller tweaks below that shipped straight to production.
+Built against a partner-supplied implementation checklist. Per that checklist's own
+deployment section, this was built and reviewed on a `v2-rep-customer-flow` branch and
+its Vercel preview first (unlike the smaller tweaks below, which shipped straight to
+production) — merged to `main` and live once that review was done.
 
 - **`?mode=rep` / `?mode=customer`** — resolved server-side in `/p/[partnerSlug]/page.tsx`
   (`searchParams`), defaulting to `customer` when unset. Carried via `PartnerContext`
@@ -154,9 +157,10 @@ for review first, unlike the smaller tweaks below that shipped straight to produ
   each partner, per §6); data residency question for Cell Medics LTD (§6, still open —
   routing/config/catalog-scoping work above doesn't depend on resolving this, but it
   should be settled before their real embed snippet points at production).
-- Per §4's rollout plan: this was built on the `partner-mode` branch, `main` untouched.
-  Next steps per that plan: push the branch, validate on the Vercel preview URL
-  (including a real embed snippet pointed at the preview), then PR review before merge.
+- Per §4's rollout plan: built on the `partner-mode` branch, validated, then merged to
+  `main` and deployed — this first pass (routing, branding, SKU scoping, Add to cart
+  removal) has been live in production since. The rep/customer end-flow above followed
+  the same branch → preview → merge pattern separately.
 
 **Non-negotiable constraint:** The existing bundle builder — the flow currently live in
 production and embedded on our own marketing pages — must not change in behavior,

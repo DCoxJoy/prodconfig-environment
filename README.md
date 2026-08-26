@@ -1,104 +1,117 @@
-# Product Configurator — Phase 1 Build
+# aXtion Solution Bundle Builder
 
-This is a Next.js 14+ App Router project featuring an interactive product configurator wizard. The stack is built using TypeScript and Tailwind CSS, with server-side routes configured to connect to HubSpot CRM and prepared for BigCommerce integrations.
+A guided-selling product configurator for Joy Factory's aXtion protective case/mount
+line. Walks a user through device → features → environment → a live BigCommerce-backed
+bundle recommendation, with an AI-assisted swap step and a Contact Sales hand-off.
+Also ships a branded, catalog-scoped variant ("V2") for external channel partners.
+
+For full build history, every feature decision, and current operating status, see
+**`CLAUDE.md`** (and **`CLAUDE.partner-mode.md`** for the channel-partner variant) —
+this file is just enough to get the project running locally.
 
 ## Stack
-- **Framework**: Next.js 16 (App Router)
-- **Styling**: Tailwind CSS v4
-- **Language**: TypeScript
-- **CRM Integration**: HubSpot CRM (Contacts & Deals)
-- **Deployment Target**: Vercel
+- **Framework:** Next.js 16 (App Router), TypeScript (strict), Tailwind CSS v4
+- **AI:** Anthropic Claude API — server-side only (bundle reasoning paragraph, AI-edit swaps, catalog enrichment)
+- **Commerce:** BigCommerce Storefront/REST API (live catalog, cart creation)
+- **CRM:** HubSpot Forms Submission API (Contact Sales — default app only; partner
+  routes with a `contactEmail` configured use a `mailto:` hand-off instead, capturing
+  no lead data)
+- **Deployment:** Vercel
 
 ---
 
 ## Getting Started
 
 ### 1. Prerequisites
-- **Node.js**: v18.17.0 or higher (we recommend using Node.js v20)
-- **HubSpot Account**: (Optional for local testing if mock settings are used) A Private App Access Token with `crm.objects.contacts.write` and `crm.objects.deals.write` scopes.
+- **Node.js v20** (via nvm — `source ~/.nvm/nvm.sh && nvm use 20.20.2`)
+- A BigCommerce store with API credentials
+- An Anthropic API key
+- A HubSpot private app token (only needed for the default app's Contact Sales form)
 
-### 2. Environment Variables Setup
-Create a `.env.local` file in the root of the project. A template `.env.example` has been provided:
+### 2. Environment variables
+Create `.env.local` in the project root:
 
 ```bash
-# HubSpot Credentials
-HUBSPOT_ACCESS_TOKEN=your_hubspot_private_app_token_here
-HUBSPOT_PIPELINE_ID=your_hubspot_pipeline_id_here
-HUBSPOT_DEAL_STAGE_ID=your_deal_stage_id_here
-
-# BigCommerce Credentials (readiness for Phase 2)
+# BigCommerce
 BC_STORE_HASH=your_store_hash_here
 BC_ACCESS_TOKEN=your_access_token_here
-BC_CLIENT_ID=your_client_id_here
 
-# Gemini API Credentials (readiness for Phase 2)
-GEMINI_API_KEY=your_google_cloud_gemini_api_key_here
+# Anthropic Claude API
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# Application URL
+# HubSpot (default app's Contact Sales form only)
+HUBSPOT_ACCESS_TOKEN=your_hubspot_private_app_token_here
+
+# Optional — channel-partner mode kill switch. Unset or anything other than "false"
+# leaves partner routes (/p/[partnerSlug]) enabled.
+PARTNER_MODE_ENABLED=true
+
+# App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 3. Installation
-Install the project dependencies:
+### 3. Install & run
 ```bash
 npm install
-```
-
-### 4. Running the Development Server
-Run the local dev server using Node.js v20:
-```bash
+source ~/.nvm/nvm.sh && nvm use 20.20.2
 npm run dev
 ```
-
-The application will be available at [http://localhost:3000](http://localhost:3000).
+The app runs at [http://localhost:3000](http://localhost:3000). Channel-partner routes
+are at `/p/cell-medics` and `/p/partner-one` (append `?mode=rep` for the sales-rep view).
 
 ---
 
-## Folder Layout & Architecture
+## Folder Layout
 
 ```
 /src
   /app
-    /page.tsx                  ← Configurator entry point (wizard flow state management)
-    /layout.tsx                ← Root layout importing Tailwind & Geist Sans font
+    page.tsx                    ← Default app entry point
+    /p/[partnerSlug]/page.tsx   ← Channel-partner route (branding/SKU-scope/end-flow)
     /api
-      /hubspot
-        /route.ts              ← HubSpot CRM contact + deal creation endpoint
-      /cart
-        /route.ts              ← Cart creation stub route (Phase 1 mock)
-      /products
-        /route.ts              ← Products API placeholder (Phase 2)
-      /recommend
-        /route.ts              ← Gemini recommendations placeholder (Phase 2)
+      /bundle       ← Live BC bundle builder (device/feature/scenario scoring)
+      /ai-edit      ← Two-pass Claude AI edit (intent parse + BC candidate select)
+      /claude       ← "Why this bundle fits" reasoning paragraph
+      /cart         ← BC cart creation
+      /contact      ← HubSpot Forms Submission API (default app's Contact Sales)
+      /admin/enrich ← One-shot seed endpoint for enrichment.ts
   /components
+    ConfiguratorApp.tsx          ← Shared shell for / and /p/[partnerSlug]
     /configurator
-      /StepOne.tsx             ← Step 1: Device type question (Tablet, Handheld, etc.)
-      /StepTwo.tsx             ← Step 2: Industry selection (Logistics, Field Service, etc.)
-      /StepThree.tsx           ← Step 3: Use case selection (Inventory, Inspections, etc.)
-      /StepFour.tsx            ← Step 4: Job Title / Position capture (Operations, IT, etc.)
-      /BundleDisplay.tsx       ← Custom premium glassmorphic recommended bundle dashboard
-      /ConfirmationButtons.tsx ← "Contact Sales" (with input modal) & "Purchase Now" buttons
+      ConfiguratorShell.tsx      ← Step machine, intro overlay, nav
+      StepDevices / StepFeatures / StepEnvironment / StepReview / StepBundle
+      StepContact.tsx            ← Default app's HubSpot-backed contact form
+      StepPartnerContact.tsx     ← Partner mode's mailto confirmation screen
     /ui
-      /LoadingSpinner.tsx      ← Sleek double-spinning loading indicator
+      AppHeader.tsx, ProgressBar.tsx, StepNav.tsx, QtyControl.tsx, ...
   /lib
-    /hubspot.ts                ← HubSpot API helper clients (search, create, update, associate)
-    /hardcodedBundles.ts       ← Hardcoded starter bundle representation for Phase 1
-    /bigcommerce.ts            ← BigCommerce client stub
-    /gemini.ts                 ← Gemini API client stub
+    enrichment.ts        ← Primary recommendation control (SKU → attributes)
+    bigcommerce.ts        ← BC API client
+    claudeEnrichment.ts   ← Batch Claude inference for unknown SKUs
+    catalog.ts            ← Device groups, selectable features
+    questions.ts          ← Environment-step question sets
+    reasoning.ts          ← Fallback "why this bundle fits" text
+    partners.ts           ← PartnerConfig + PARTNERS map (channel-partner mode)
+    PartnerContext.tsx    ← usePartner() / usePartnerMode()
+    partnerMailto.ts      ← Shared mailto: builder for partner end-flows
+    ConfiguratorContext.tsx ← App state (device, features, scenarios, live bundle)
   /types
-    /index.ts                  ← Shared type interfaces
-.env.local                     ← Ignored by git
-.env.example                   ← Committed template
+    index.ts              ← Shared type interfaces
+/public
+  embed.js         ← Drop-in floating-widget embed script
+  embed-inline.js  ← Drop-in always-visible inline embed script
+/docs
+  BUILD_REFERENCE.md ← Archived Phase 1/2 build history (see CLAUDE.md for current status)
 ```
 
 ---
 
-## Validation & Verification
+## Validation
 
-### Production Build
-Verify TypeScript and next compilation by running:
 ```bash
-npm run build
+npx tsc --noEmit   # type-check
+npm run build      # full production build
 ```
-This builds and prerenders all pages, verifying the code compiles successfully.
-Updated 8/25/2026
+
+`playwright` is a devDependency used for headless-browser UI verification during
+development (screenshot + behavior checks) — not part of the production build.
