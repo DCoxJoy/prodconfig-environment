@@ -8,6 +8,11 @@ export interface PartnerConfig {
   logoUrl?: string;
   skuAllowlist: string[]; // empty array = no restriction (full catalog)
   brandColor?: string; // overrides the app's --color-brand accent (red) for this partner; unset = default red
+  // Enables the rep/customer mailto end-flow (see partnerMailto.ts) for this partner —
+  // unset means the partner keeps the original HubSpot-backed Contact Sales form
+  // instead, so a partner isn't switched onto an email-only flow with nowhere for
+  // that email to go. Setting this is a one-line edit, same as every other field here.
+  contactEmail?: string;
 }
 
 export const PARTNERS: Record<string, PartnerConfig> = {
@@ -16,12 +21,15 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     name: 'Cell Medics LTD',
     skuAllowlist: [], // populate once Cell Medics LTD provides their SKU list
     brandColor: '#ea526f', // Cell Medics LTD's own brand color
+    // contactEmail not yet provided by Cell Medics LTD — Contact Sales keeps using the
+    // original HubSpot form until one is added here.
   },
   'partner-one': {
     slug: 'partner-one',
     name: 'Partner One IT',
     skuAllowlist: [], // populate once this partner provides their SKU list
     brandColor: '#0071EB', // Partner One's own brand color
+    contactEmail: 'sales@partneroneit.com', // TODO: confirm this is the real address — placeholder from the spec doc
   },
 };
 

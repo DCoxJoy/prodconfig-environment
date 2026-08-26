@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
-import { usePartner } from '../../lib/PartnerContext';
+import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
+import { buildPartnerMailto } from '../../lib/partnerMailto';
 import { getDeviceFamily } from '../../lib/utils';
 import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
 import ProgressBar from '../ui/ProgressBar';
@@ -14,6 +15,7 @@ import StepEnvironment from './StepEnvironment';
 import StepReview from './StepReview';
 import StepBundle from './StepBundle';
 import StepContact from './StepContact';
+import StepPartnerContact from './StepPartnerContact';
 
 type StepId = 'intro' | 'devices' | 'features' | 'environment' | 'review' | 'bundle' | 'contact';
 
@@ -33,6 +35,12 @@ export default function ConfiguratorShell() {
   const { state, liveProducts, qtys, dispatch } = useConfigurator();
   const { device, certified, features, scenarios } = state;
   const partner = usePartner();
+  const partnerMode = usePartnerMode();
+  // A partner only gets the mailto-only end-flow once its contactEmail is configured
+  // (Cell Medics doesn't have one yet) — otherwise Contact Sales keeps using the
+  // original HubSpot-backed form, so a partner is never switched onto an email-only
+  // flow with nowhere for that email to go.
+  const partnerMailtoEnabled = !!partner?.contactEmail;
 
   const [step, setStep]                   = useState<StepId>('intro');
   const [contactSource, setContactSource] = useState<'certified' | 'escalation' | 'manual'>('manual');
@@ -113,6 +121,30 @@ export default function ConfiguratorShell() {
   function goContactSales(source: 'certified' | 'escalation' | 'manual', request = '') {
     setContactSource(source);
     setEscalationRequest(request);
+
+    // Partner mode (once contactEmail is configured): every entry point into "contact
+    // sales" — certified-yes, an escalation banner, or the Bundle step's own button —
+    // hands off to a mailto: instead of the HubSpot-backed form, so no lead data is
+    // ever captured for that partner's traffic. The mailto fires right here, at the
+    // moment of the click, rather than on mount of the next step — the most reliable
+    // place to trigger it, and it matches how Share Bundle already works.
+    if (partner && partnerMailtoEnabled) {
+      const mailtoHref = buildPartnerMailto({
+        partner,
+        mode: partnerMode,
+        deviceName: device?.name ?? 'your device',
+        source,
+        escalationRequest: request,
+        liveProducts,
+        qtys,
+      });
+      (window.top || window).location.href = mailtoHref;
+      STEP_META.contact.q = partnerMode === 'rep' ? 'Quote ready to send' : 'Message ready to send';
+      STEP_META.contact.sub = 'Your email client should have opened with the details below pre-filled.';
+      setStep('contact');
+      return;
+    }
+
     if (source === 'escalation') {
       STEP_META.contact.q = 'Connect with a specialist';
     } else {
@@ -247,11 +279,19 @@ export default function ConfiguratorShell() {
             />
           )}
           {displayStep === 'contact' && (
-            <StepContact
-              source={contactSource}
-              escalationRequest={escalationRequest}
-              onBack={handleBack}
-            />
+            partnerMailtoEnabled ? (
+              <StepPartnerContact
+                source={contactSource}
+                escalationRequest={escalationRequest}
+                onBack={handleBack}
+              />
+            ) : (
+              <StepContact
+                source={contactSource}
+                escalationRequest={escalationRequest}
+                onBack={handleBack}
+              />
+            )
           )}
         </div>
 

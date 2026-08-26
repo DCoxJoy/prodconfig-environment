@@ -43,6 +43,10 @@
   // set, the iframe loads /p/{partner} instead of the default unbranded app. Unset by
   // default, so every existing deployment is unaffected.
   const partner = scriptEl && scriptEl.getAttribute("data-partner");
+  // Sales-floor rep view vs. customer self-serve view, for partners with the mailto
+  // end-flow enabled (see partnerMailto.ts) — "rep" or "customer"; anything else
+  // (including unset) falls through to the app's own default of "customer".
+  const mode = scriptEl && scriptEl.getAttribute("data-mode");
   // Side panel slides in from whichever edge the FAB is on (left or right), so it
   // never opens on top of the button itself.
   const side = position.indexOf("left") !== -1 ? "left" : "right";
@@ -293,7 +297,9 @@
 
   const iframe = document.createElement("iframe");
   iframe.className = "agc-iframe";
-  iframe.src = partner ? `${baseUrl}/p/${encodeURIComponent(partner)}?embed=true` : `${baseUrl}/?embed=true`;
+  iframe.src = partner
+    ? `${baseUrl}/p/${encodeURIComponent(partner)}?embed=true${mode ? `&mode=${encodeURIComponent(mode)}` : ""}`
+    : `${baseUrl}/?embed=true`;
   iframe.title = "Product Configurator Widget";
   iframe.setAttribute("allow", "payment");
 

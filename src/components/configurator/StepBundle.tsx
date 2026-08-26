@@ -7,7 +7,7 @@ import {
 import { getDeviceFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
-import { usePartner } from '../../lib/PartnerContext';
+import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
 import { buildReasoningParagraph } from '../../lib/reasoning';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -20,9 +20,17 @@ interface StepBundleProps {
 export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }: StepBundleProps) {
   const { state, liveProducts, qtys } = useConfigurator();
   const { device, features, scenarios, appliedEdits } = state;
-  // Partner-branded variants (Cell Medics LTD, Partner One) don't get a direct
+  const partner = usePartner();
+  const partnerMode = usePartnerMode();
+  // Partner-branded variants (Cell Medics LTD, Partner One IT) don't get a direct
   // checkout — the default (unbranded) Bundle Builder is unaffected, partner === null.
-  const hideAddToCart = !!usePartner();
+  const hideAddToCart = !!partner;
+  // The rep/customer split (and mailto-only Contact Sales) only applies once a
+  // partner's contactEmail is configured — see ConfiguratorShell.goContactSales. Cell
+  // Medics doesn't have one yet, so it keeps today's Contact Sales + Share Bundle
+  // layout unchanged until one is added.
+  const mailtoFlow = !!partner?.contactEmail;
+  const isRep = mailtoFlow && partnerMode === 'rep';
 
   const family = getDeviceFamily(device?.id ?? '');
 
@@ -207,7 +215,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
       </div>
 
       {/* ── CTA grid ───────────────────────────────────────────────────── */}
-      <div className={`grid ${hideAddToCart ? 'grid-cols-2' : 'grid-cols-3'} gap-2.5`}>
+      <div className={`grid ${isRep ? 'grid-cols-1' : hideAddToCart ? 'grid-cols-2' : 'grid-cols-3'} gap-2.5`}>
         {!hideAddToCart && (
           <button
             disabled={!hasItems}
@@ -227,29 +235,51 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
           onClick={() => onContactSales('manual')}
           className={[
             'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold cursor-pointer transition-colors',
-            // Partner variants have no Add to cart CTA, so Contact sales takes over
-            // its solid brand-red styling as the primary action instead of the
-            // default white/outline look.
+            // Partner variants have no Add to cart CTA, so Contact sales/Send a Quote
+            // takes over its solid brand-red styling as the primary action instead of
+            // the default white/outline look.
             hideAddToCart
               ? 'bg-brand text-white border-none hover:bg-brand-hover'
               : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50',
           ].join(' ')}
         >
           <span className="text-[18px] leading-none">✉</span>
-          Contact sales
+          {isRep ? 'Send a Quote' : 'Contact sales'}
         </button>
-        <button
-          onClick={handleShareClick}
-          className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border border-share bg-white text-share hover:bg-share/5 transition-colors cursor-pointer"
-        >
-          <IconShare size={18} />
-          Share bundle
-        </button>
+        {/* Rep mode has no Share Bundle — Send a Quote is the rep's one action. */}
+        {!isRep && (
+          <button
+            onClick={handleShareClick}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[12px] font-semibold border border-share bg-white text-share hover:bg-share/5 transition-colors cursor-pointer"
+          >
+            <IconShare size={18} />
+            Share bundle
+          </button>
+        )}
       </div>
 
       {!hideAddToCart && !hasItems && (
         <div className="text-[12px] text-stone-400 text-center mt-2">
           Add at least one item to continue to checkout
+        </div>
+      )}
+
+      {/* Guidance + privacy disclaimer — only for partners with the mailto end-flow
+          actually active (mailtoFlow); showing "no data is saved" for a partner still
+          on the HubSpot form (e.g. Cell Medics today) would be false. */}
+      {mailtoFlow && (
+        <div className="text-[11px] text-stone-400 text-center mt-3 space-y-1">
+          {isRep ? (
+            <p>* Opens your email client. Add your customer in the To: field and CC yourself for a copy.</p>
+          ) : (
+            <>
+              <p>* &ldquo;Contact sales&rdquo; opens your email client with our sales team pre-loaded. Add any additional recipients as needed.</p>
+              <p>* &ldquo;Share bundle&rdquo; lets you share this bundle with your team or procurement contact via email.</p>
+            </>
+          )}
+          <p className="border-t border-stone-200 pt-2 mt-2">
+            *No data is saved. Following privacy laws, Joy Factory does not capture any information entered here. Your selections are only shared when you choose to send an email.
+          </p>
         </div>
       )}
 

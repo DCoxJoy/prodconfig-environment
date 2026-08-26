@@ -5,6 +5,89 @@ document specifies an extension to the architecture described in `CLAUDE.md`. It
 not replace or modify that document — `CLAUDE.md` continues to describe the app as it
 behaves on `main`; this file is updated instead as partner-mode work lands here.
 
+### Implementation notes — V2 rep/customer end-flow (branch `v2-rep-customer-flow`)
+
+Built against a partner-supplied implementation checklist. Not yet merged to `main` —
+per that checklist's own deployment section, this is meant to go to a Vercel preview
+for review first, unlike the smaller tweaks below that shipped straight to production.
+
+- **`?mode=rep` / `?mode=customer`** — resolved server-side in `/p/[partnerSlug]/page.tsx`
+  (`searchParams`), defaulting to `customer` when unset. Carried via `PartnerContext`
+  (now `{ partner, mode }`, with a new `usePartnerMode()` hook alongside the existing
+  `usePartner()`). `embed.js`/`embed-inline.js` both gained a `data-mode` attribute that
+  forwards through to the iframe's `?mode=` — without this there'd be no way to actually
+  configure rep vs. customer for a real embedded deployment.
+- **`PartnerConfig.contactEmail?: string`** — the new gate for the entire feature.
+  Partner One IT: `sales@partneroneit.com` (the checklist's own placeholder —
+  **still needs confirming as the real address**). Cell Medics LTD: intentionally unset
+  — they haven't provided one. **Every behavior below only activates once a partner's
+  `contactEmail` is set** (`partnerMailtoEnabled` / `mailtoFlow` in the code) — a partner
+  without one keeps exactly today's behavior (Contact sales + Share bundle, full
+  HubSpot-backed form) rather than being switched onto an email-only flow with nowhere
+  for that email to go. This was a deliberate safety default, not something the
+  checklist specified directly.
+- **Rep view (Bundle step)** — single full-width "Send a Quote" button (grid drops to
+  1 column), no Add to cart, no Share bundle. Blank `To:`, `cc=` the partner's
+  `contactEmail`, subject `Bundle Quote from {partner.name}`, plain-text body with
+  blank `Customer:`/`Rep:` lines for the rep to fill in by hand, then the bundle
+  itemization and sub-total.
+- **Customer view (Bundle step)** — unchanged 2-button layout (Contact sales +
+  Share bundle) from the earlier Add-to-cart-removal work, but "Contact sales" now
+  builds a `mailto:` addressed directly to the partner's `contactEmail` (subject
+  `Contact request — {device} bundle`) instead of calling `onContactSales` to open the
+  multi-field form. Share bundle is untouched (it was already a mailto:).
+- **"Every entry point" bypasses the HubSpot form, not just the Bundle-step button** —
+  per explicit confirmation. `ConfiguratorShell.goContactSales()` is the single call
+  site all three entry points funnel through (certified-yes from Features, the
+  escalation banner from Review, and the Bundle step's own button) — when
+  `partnerMailtoEnabled`, it fires the mailto: immediately (at the moment of the click,
+  same reliable pattern Share Bundle already used) and routes to a new confirmation
+  step instead of ever mounting `StepContact`.
+- **`src/components/configurator/StepPartnerContact.tsx`** (new) — replaces
+  `StepContact` for the 'contact' step slot whenever `partnerMailtoEnabled`. Not a form
+  — a confirmation screen ("Quote ready to send" / "Message ready to send") with a
+  manual "Click here" retry link (same href, a real `<a>`) since there's no reliable
+  way for JS to detect whether the OS actually had a mail client to hand the mailto:
+  off to; the bundle summary (when applicable) and the required privacy disclaimer.
+- **`src/lib/partnerMailto.ts`** (new) — the one shared `buildPartnerMailto()` used by
+  both `goContactSales` and `StepPartnerContact`'s retry link, so the rep vs. customer
+  address/subject/body logic exists in exactly one place. Built with
+  `encodeURIComponent` per field (matching the existing Share Bundle mailto's
+  convention) — **not** `URLSearchParams`, which was tried first and form-encodes
+  spaces as `+` rather than `%20`; the mailto URI spec doesn't guarantee every mail
+  client treats a literal `+` in the body as a space, so this was fixed before
+  considering it done.
+- **Plain-text only, deliberately** — mailto: bodies cannot render HTML/tables in any
+  mail client (Outlook, Gmail, Apple Mail, mobile included); this is a hard limitation
+  of the mailto: URI scheme, not an implementation gap. The checklist's HTML/table
+  quote-formatting section is only achievable with a real email-sending backend
+  (Resend/SendGrid), which the checklist itself flags as a future enhancement, not
+  built here.
+- **Asterisk guidance + privacy disclaimer** (`StepBundle.tsx`) — the exact wording
+  from the checklist, shown only when `mailtoFlow` is true (so Cell Medics, still on
+  the HubSpot form today, never shows "no data is saved" — that would be false for
+  them right now).
+- **Not done from the checklist, on purpose:**
+  - §2 (accessory/upsell logic) — explicitly gated on "finalize in V1 first" in the
+    checklist itself; not started.
+  - §8 (Quick Start PDF) — a documentation deliverable, sequenced after this UI is
+    reviewed/approved rather than built against a moving target.
+  - §9's manual cross-client testing (real Outlook/Apple Mail/iOS Mail/Gmail app) —
+    can't be performed here; what was verified instead is that the generated mailto:
+    URLs are correctly percent-encoded (see the `+`-vs-`%20` fix above) and that no
+    `localStorage`/`sessionStorage` is used anywhere in the partner flow.
+  - The checklist's example config used `slug: "partner-one-it"`; the actual slug was
+    left as `partner-one` to avoid breaking the already-deployed `/p/partner-one` URL
+    and any embed snippet already pointed at it. One-line change if it should match.
+- Verified end-to-end (Playwright): default app and Cell Medics (no `contactEmail`)
+  byte-for-byte unaffected on every path (Bundle-step buttons, certified-yes,
+  escalation); Partner One IT customer mode shows Contact sales (mailto to
+  `sales@partneroneit.com`) + Share bundle with no Add to cart; Partner One IT rep mode
+  shows only "Send a Quote" (blank To, cc'd to the partner); certified-yes and the
+  Bundle-step button both correctly skip `StepContact` for Partner One IT and land on
+  the new confirmation screen; generated mailto hrefs inspected directly and confirmed
+  `%20`-encoded with correct subject/to/cc/body for both modes.
+
 ### Implementation notes (first pass — Cell Medics LTD + Partner One)
 
 - `src/lib/partners.ts` — `PartnerConfig` + `PARTNERS` map, exactly as specified in
