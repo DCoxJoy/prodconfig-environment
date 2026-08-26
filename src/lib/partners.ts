@@ -19,7 +19,7 @@ export const PARTNERS: Record<string, PartnerConfig> = {
   },
   'partner-one': {
     slug: 'partner-one',
-    name: 'Partner One',
+    name: 'Partner One IT',
     skuAllowlist: [], // populate once this partner provides their SKU list
     brandColor: '#0071EB', // Partner One's own brand color
   },
