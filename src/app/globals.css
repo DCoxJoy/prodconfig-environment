@@ -51,7 +51,7 @@
    browser/viewport edge — applies to every version (default + all partner
    routes) since they all render through the same ConfiguratorApp shell. */
 .app-shell {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 /* ─── Shared list container ──────────────────────────────────────────────── */
