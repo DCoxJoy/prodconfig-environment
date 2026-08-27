@@ -30,7 +30,7 @@ export default function ConfiguratorApp({
 
   return (
     <main className="min-h-screen bg-stone-100 flex justify-center items-start">
-      <div className="w-full max-w-[720px]" style={brandStyle}>
+      <div className="w-full max-w-[720px] app-shell" style={brandStyle}>
         <AppHeader partnerName={partner?.name} />
         <div className="page-outer">
           <PartnerProvider partner={partner} mode={mode}>
