@@ -44,13 +44,13 @@ export function buildPartnerMailto({
     lines.push(`Request: "${escalationRequest}"`);
   }
   if (showBundle && liveProducts.length > 0) {
-    lines.push('', 'Recommended bundle:');
+    lines.push('', 'Recommended bundle:', '');
     liveProducts.forEach((p, i) => {
       const qty = qtys[i] ?? 0;
       if (qty === 0) return;
       lines.push(`• ${p.type}: ${p.name} (${p.sku}) ×${qty} — $${(p.unitPrice * qty).toFixed(2)}`);
     });
-    lines.push(`Sub-total: $${total.toFixed(2)}`);
+    lines.push('', `Sub-total: $${total.toFixed(2)}`);
   }
   lines.push('', '---', 'No data from this session is stored — this email is the only record of these selections.');
 
