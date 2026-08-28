@@ -13,6 +13,11 @@ export interface PartnerConfig {
   // instead, so a partner isn't switched onto an email-only flow with nowhere for
   // that email to go. Setting this is a one-line edit, same as every other field here.
   contactEmail?: string;
+  // Displays every BC price (which is always USD) converted into this partner's local
+  // currency instead — unset means prices are shown exactly as BC returns them (USD,
+  // no label), the default app's behavior. `rate` is a plain multiplier applied to the
+  // USD amount; update it directly here if it drifts, no other code changes needed.
+  currency?: { code: string; rate: number };
 }
 
 export const PARTNERS: Record<string, PartnerConfig> = {
@@ -22,6 +27,9 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     skuAllowlist: [], // populate once Cell Medics LTD provides their SKU list
     brandColor: '#ea526f', // Cell Medics LTD's own brand color
     contactEmail: 'service@cellmedics.ca', // placeholder, confirmed usable for now
+    // Cell Medics LTD is Canadian; BC's catalog prices are USD. Rate is the reciprocal
+    // of the CAD→USD rate provided (1 CAD ≈ $0.72 USD, so 1 USD ≈ 1/0.72 ≈ 1.3889 CAD).
+    currency: { code: 'CAD', rate: 1.3889 },
   },
   'partner-one-it': {
     slug: 'partner-one-it',
@@ -34,6 +42,16 @@ export const PARTNERS: Record<string, PartnerConfig> = {
 
 export function getPartner(slug: string): PartnerConfig | null {
   return PARTNERS[slug] ?? null;
+}
+
+// Formats a BC price (always USD) for display, converting it into a partner's local
+// currency when one is configured (see `currency` on PartnerConfig above). No partner,
+// or a partner without `currency` set, renders exactly as before: `$129.99`, no label —
+// the default app and any partner without a currency override are unaffected.
+export function formatPrice(usdAmount: number, partner: PartnerConfig | null): string {
+  const currency = partner?.currency;
+  const amount = currency ? usdAmount * currency.rate : usdAmount;
+  return currency ? `$${amount.toFixed(2)} ${currency.code}` : `$${amount.toFixed(2)}`;
 }
 
 // Derives a darker hover shade from a partner's brandColor, matching the ~17% darken

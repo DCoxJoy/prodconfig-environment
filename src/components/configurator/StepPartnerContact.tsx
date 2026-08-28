@@ -4,6 +4,7 @@ import { IconSend } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
 import { buildPartnerMailto } from '../../lib/partnerMailto';
+import { formatPrice } from '../../lib/partners';
 
 interface StepPartnerContactProps {
   source: 'certified' | 'escalation' | 'manual';
@@ -68,7 +69,7 @@ export default function StepPartnerContact({ source, escalationRequest, onBack }
           </div>
           <div className="flex justify-between text-[13px] font-semibold text-stone-900 border-t border-stone-200 mt-3 pt-3">
             <span>Sub-total</span>
-            <span>${total.toFixed(2)}</span>
+            <span>{formatPrice(total, partner)}</span>
           </div>
         </div>
       )}

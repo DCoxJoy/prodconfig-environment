@@ -8,6 +8,7 @@ import { getDeviceFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
+import { formatPrice } from '../../lib/partners';
 import { buildReasoningParagraph } from '../../lib/reasoning';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -77,10 +78,10 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
     `Hi,\n\nHere's a bundle recommendation for the ${device?.name ?? 'your device'}.\n`,
     ...liveProducts
       .map((p, i) => qtys[i] > 0
-        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]} — $${(p.unitPrice * qtys[i]).toFixed(2)}`
+        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]} — ${formatPrice(p.unitPrice * qtys[i], partner)}`
         : null)
       .filter(Boolean),
-    `\nBundle sub-total: $${total.toFixed(2)}`,
+    `\nBundle sub-total: ${formatPrice(total, partner)}`,
   ].join('\n');
 
   const shareSubject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
@@ -183,8 +184,8 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
                 </div>
               </div>
               <div className={['text-[14px] font-semibold text-right sm:ml-auto sm:flex-shrink-0', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
-                ${(p.unitPrice * qtys[i]).toFixed(2)}
-                {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">${p.unitPrice.toFixed(2)} ×{qtys[i]}</div>}
+                {formatPrice(p.unitPrice * qtys[i], partner)}
+                {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">{formatPrice(p.unitPrice, partner)} ×{qtys[i]}</div>}
               </div>
             </div>
             {hasUnmetFeatures && (
@@ -211,7 +212,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
           <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
           <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing applied</div>
         </div>
-        <div className="text-[26px] font-semibold text-stone-900">${total.toFixed(2)}</div>
+        <div className="text-[26px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
       </div>
 
       {/* ── CTA grid ───────────────────────────────────────────────────── */}

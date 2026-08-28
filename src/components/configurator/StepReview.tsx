@@ -7,6 +7,7 @@ import { getDeviceFamily, isIphoneFamily } from '../../lib/utils';
 import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner } from '../../lib/PartnerContext';
+import { formatPrice } from '../../lib/partners';
 import QtyControl from '../ui/QtyControl';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -231,7 +232,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                       <div className="text-[12px] text-stone-500 mt-0.5">
                         {isZero
                           ? <span className="text-stone-400 italic">Excluded from cart</span>
-                          : `$${p.unitPrice.toFixed(2)} each`
+                          : `${formatPrice(p.unitPrice, partner)} each`
                         }
                       </div>
                     </div>
@@ -242,7 +243,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                       'text-[14px] font-semibold text-right',
                       isZero ? 'text-stone-300' : 'text-stone-900',
                     ].join(' ')}>
-                      {isZero ? '—' : `$${(p.unitPrice * (qtys[i] ?? 0)).toFixed(2)}`}
+                      {isZero ? '—' : formatPrice(p.unitPrice * (qtys[i] ?? 0), partner)}
                     </div>
                   </div>
                 </div>
@@ -270,7 +271,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
               <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
               <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing</div>
             </div>
-            <div className="text-[24px] font-semibold text-stone-900">${total.toFixed(2)}</div>
+            <div className="text-[24px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
           </div>
         </>
       )}

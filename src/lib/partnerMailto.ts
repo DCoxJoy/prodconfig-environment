@@ -1,5 +1,5 @@
 import { BundleItem } from '../types';
-import { PartnerConfig } from './partners';
+import { PartnerConfig, formatPrice } from './partners';
 
 export type PartnerMode = 'rep' | 'customer';
 
@@ -48,9 +48,9 @@ export function buildPartnerMailto({
     liveProducts.forEach((p, i) => {
       const qty = qtys[i] ?? 0;
       if (qty === 0) return;
-      lines.push(`• ${p.type}: ${p.name} (${p.sku}) ×${qty} — $${(p.unitPrice * qty).toFixed(2)}`);
+      lines.push(`• ${p.type}: ${p.name} (${p.sku}) ×${qty} — ${formatPrice(p.unitPrice * qty, partner)}`);
     });
-    lines.push('', `Sub-total: $${total.toFixed(2)}`);
+    lines.push('', `Sub-total: ${formatPrice(total, partner)}`);
   }
   lines.push('', '---', 'No data from this session is stored — this email is the only record of these selections.');
 
