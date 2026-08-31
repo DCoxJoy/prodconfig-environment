@@ -1,9 +1,19 @@
+import Script from 'next/script';
 import { ConfiguratorProvider } from '../lib/ConfiguratorContext';
 import { PartnerProvider } from '../lib/PartnerContext';
 import { PartnerConfig, darkenHex } from '../lib/partners';
 import { PartnerMode } from '../lib/partnerMailto';
 import ConfiguratorShell from './configurator/ConfiguratorShell';
 import AppHeader from './ui/AppHeader';
+
+// Joy Factory's own HubSpot portal — same one StepContact.tsx's form already posts
+// to. Loaded on the default app only: HubSpot's tracking is CRM-linked (it can
+// identify a visitor once they ever fill out any HubSpot form), which is a
+// different category from the anonymous GA4/Vercel Analytics events every version
+// sends — adding it to a partner route would sit in tension with the "no data is
+// saved" promise shown to that partner's own customers (see StepBundle.tsx /
+// StepPartnerContact.tsx). Partner routes intentionally get no HubSpot script.
+const HUBSPOT_PORTAL_ID = '20662622';
 
 // Shared shell for both the default (/) and partner-branded (/p/[partnerSlug])
 // routes — identical structure either way. `partner` is null on the default route,
@@ -30,6 +40,24 @@ export default function ConfiguratorApp({
 
   return (
     <main className="min-h-screen bg-stone-100 flex justify-center items-start">
+      {!partner && (
+        <>
+          {/* HubSpot's portal-wide loader also auto-injects any chat/Conversations
+              widget configured on the portal — not just tracking. This settings
+              object (HubSpot's own documented flag) must run before the loader script
+              below and tells it to skip that auto-injection, while tracking still
+              fires normally. Next.js preserves document order for scripts sharing a
+              strategy, so this stays ordered ahead of the loader. */}
+          <Script id="hs-conversations-settings" strategy="afterInteractive">
+            {`window.hsConversationsSettings = { loadImmediately: false };`}
+          </Script>
+          <Script
+            id="hs-script-loader"
+            strategy="afterInteractive"
+            src={`//js.hs-scripts.com/${HUBSPOT_PORTAL_ID}.js`}
+          />
+        </>
+      )}
       <div className="w-full max-w-[720px] app-shell" style={brandStyle}>
         <AppHeader partnerName={partner?.name} />
         <div className="page-outer">

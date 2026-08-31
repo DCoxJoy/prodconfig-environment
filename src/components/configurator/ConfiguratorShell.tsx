@@ -5,6 +5,7 @@ import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
 import { buildPartnerMailto } from '../../lib/partnerMailto';
+import { trackEvent, appVersion } from '../../lib/analytics';
 import { getDeviceFamily } from '../../lib/utils';
 import { ENV_QUESTIONS_IPHONE, getActiveTabletQuestions } from '../../lib/questions';
 import ProgressBar from '../ui/ProgressBar';
@@ -41,6 +42,7 @@ export default function ConfiguratorShell() {
   // original HubSpot-backed form, so a partner is never switched onto an email-only
   // flow with nowhere for that email to go.
   const partnerMailtoEnabled = !!partner?.contactEmail;
+  const version = appVersion(partner?.slug);
 
   const [step, setStep]                   = useState<StepId>('intro');
   const [contactSource, setContactSource] = useState<'certified' | 'escalation' | 'manual'>('manual');
@@ -76,6 +78,22 @@ export default function ConfiguratorShell() {
   // the host page, so this never jumps the surrounding WordPress page.
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [displayStep]);
+
+  // Funnel event — fires once per step a user actually reaches (intro is folded into
+  // 'devices' via displayStep, so this never double-counts the overlay). device/
+  // feature_count ride along here rather than as separate events, since GA4/Vercel
+  // both accept arbitrary params per event and this is the one place every step
+  // transition already funnels through.
+  useEffect(() => {
+    trackEvent('step_view', {
+      step: displayStep,
+      app_version: version,
+      mode: partnerMode,
+      device: device?.name,
+      feature_count: features.length,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per step change, not on every device/feature edit within a step
   }, [displayStep]);
 
   const meta         = STEP_META[displayStep];
@@ -122,6 +140,13 @@ export default function ConfiguratorShell() {
     setContactSource(source);
     setEscalationRequest(request);
 
+    trackEvent('contact_sales_click', {
+      source,
+      app_version: version,
+      mode: partnerMode,
+      mailto_flow: !!(partner && partnerMailtoEnabled),
+    });
+
     // Partner mode (once contactEmail is configured): every entry point into "contact
     // sales" — certified-yes, an escalation banner, or the Bundle step's own button —
     // hands off to a mailto: instead of the HubSpot-backed form, so no lead data is
@@ -154,6 +179,7 @@ export default function ConfiguratorShell() {
   }
 
   async function handleAddToCart() {
+    trackEvent('add_to_cart_click', { app_version: version });
     setAddingToCart(true);
     try {
       const items = liveProducts
@@ -184,6 +210,7 @@ export default function ConfiguratorShell() {
   }
 
   function handleReset() {
+    trackEvent('reset_click', { app_version: version, step_at_reset: step });
     dispatch({ type: 'RESET' });
     setStep('intro');
     setContactSource('manual');

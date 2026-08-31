@@ -9,6 +9,7 @@ import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
 import { formatPrice } from '../../lib/partners';
+import { trackEvent, appVersion } from '../../lib/analytics';
 import { buildReasoningParagraph } from '../../lib/reasoning';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -93,6 +94,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
   // fail to reach the OS mail client at all; window.top is always safe to *write* to
   // cross-origin (unlike reading it), and equals window itself when not embedded.
   function handleShareClick() {
+    trackEvent('share_bundle_click', { app_version: appVersion(partner?.slug) });
     (window.top || window).location.href = shareMailtoHref;
   }
 

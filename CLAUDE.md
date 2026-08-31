@@ -136,6 +136,28 @@ partner route.
   this is a hard platform limitation, not a gap. A real HTML "quote" email would need
   a backend email-sending service (Resend/SendGrid), which is a deliberate future item.
 
+### Analytics
+
+- **GA4 + Vercel Web Analytics on every version** — one shared GA4 property
+  (`G-2NYWBB5T4Q`, loaded in `src/app/layout.tsx`) and `@vercel/analytics` send
+  events from the default app and every partner route alike. `src/lib/analytics.ts`'s
+  `trackEvent(name, params)` fires both destinations from one call, and `appVersion()`
+  resolves `partner?.slug` to `'default'`/`'cell-medics'`/`'partner-one-it'` so all
+  three can be filtered separately in reporting from the one shared property.
+- **Events tracked:** `step_view` (fires once per funnel step reached, carrying
+  device/feature_count/mode — the primary funnel signal), `contact_sales_click`
+  (source: certified/escalation/manual, mailto_flow), `add_to_cart_click`,
+  `share_bundle_click`, `reset_click`, `no_products_found`, `ai_edit_result`
+  (matched/reason). Instrumented in `ConfiguratorShell.tsx`, `StepBundle.tsx`, and
+  `StepReview.tsx` at the exact points those states/actions already occur.
+- **HubSpot tracking — default app only.** The HubSpot loader script (portal
+  `20662622`, same portal StepContact.tsx's form already posts to) is loaded in
+  `ConfiguratorApp.tsx` only when `!partner`. Deliberately excluded from partner
+  routes: HubSpot's tracking is CRM-linked (it can identify a visitor once they ever
+  fill out any HubSpot form), a different category from the anonymous GA4/Vercel
+  events every version sends — adding it to a partner route would conflict with the
+  "no data is saved" promise already shown to that partner's own customers.
+
 ### Key files
 | File | Purpose |
 |------|---------|
@@ -155,6 +177,7 @@ partner route.
 | `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount; calls `/api/ai-edit` for AI edits; no-products message; unmet-feature banner; item name/thumbnail link to BC product page |
 | `src/lib/questions.ts` | `ENV_QUESTIONS_TABLET` — `power_needed` removed, `mount_install` added (conditional); `getActiveTabletQuestions(mountSurface?)` exported |
 | `src/lib/catalog.ts` | Feature labels updated; `vesa_compatible` + `magconnect` + `screen_protector` removed from `DEVICE_FEATURE_MAP` |
+| `src/lib/analytics.ts` | `trackEvent()`/`appVersion()` — shared GA4 + Vercel Analytics event helper for all three versions |
 | `src/lib/aiEdit.ts` | **Superseded** — retained for reference; no longer imported |
 | `src/components/ui/HubSpotForm.tsx` | **Superseded** — retained; embed approach abandoned |
 | `src/types/index.ts` | `BundleItem` — `productUrl` (BC product page link), `unmetFeatureLabels` (disclosure banner) |

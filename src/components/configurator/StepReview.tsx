@@ -8,6 +8,7 @@ import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner } from '../../lib/PartnerContext';
 import { formatPrice } from '../../lib/partners';
+import { trackEvent, appVersion } from '../../lib/analytics';
 import QtyControl from '../ui/QtyControl';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -23,6 +24,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
 
   const family   = getDeviceFamily(device?.id ?? '');
   const isIphone = isIphoneFamily(family);
+  const version  = appVersion(partner?.slug);
 
   // bundleLoading: true until BC bundle options arrive (or if already loaded, start false)
   const [bundleLoading, setBundleLoading] = useState(liveBundleOptions === null);
@@ -64,11 +66,15 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
         } else {
           console.warn('[StepReview] No BC products found for device:', device?.name, data);
           setNoProductsFound(true);
+          trackEvent('no_products_found', { app_version: version, device: device?.name });
         }
       })
       .catch(err => {
         console.error('[StepReview] Bundle fetch failed:', err);
-        if (!cancelled) setNoProductsFound(true);
+        if (!cancelled) {
+          setNoProductsFound(true);
+          trackEvent('no_products_found', { app_version: version, device: device?.name, reason: 'fetch_error' });
+        }
       })
       .finally(() => { if (!cancelled) setBundleLoading(false); });
 
@@ -117,18 +123,22 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
       if (data.action === 'case_change_request') {
         setAiMessage('To change your case, go back to Step 2 and adjust your feature preferences — your bundle will update automatically.');
         dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
+        trackEvent('ai_edit_result', { app_version: version, matched: false, reason: 'case_change_request' });
       } else if (data.matched && data.updatedItem) {
         const updatedProducts = liveProducts.map(p =>
           p.type === data.updatedItem.type ? data.updatedItem : p
         );
         dispatch({ type: 'SET_LIVE_PRODUCTS', products: updatedProducts });
         dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: true, detail: data.reason } });
+        trackEvent('ai_edit_result', { app_version: version, matched: true });
       } else {
         dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
+        trackEvent('ai_edit_result', { app_version: version, matched: false, reason: 'no_candidate' });
         onEscalate(note);
       }
     } catch {
       dispatch({ type: 'ADD_APPLIED_EDIT', edit: { text: note, matched: false } });
+      trackEvent('ai_edit_result', { app_version: version, matched: false, reason: 'fetch_error' });
       onEscalate(note);
     } finally {
       setThinking(false);
