@@ -42,7 +42,15 @@ export function trackEvent(name: string, params: EventParams = {}): void {
     fetch('/api/analytics/collect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: getClientId(), name, params }),
+      body: JSON.stringify({
+        client_id: getClientId(),
+        name,
+        // page_location tells GA4 what page/hostname this event happened on — a
+        // server-relayed event has no browser context of its own to infer that from,
+        // so without this every event lands with Hostname/page dimensions "(not set)",
+        // silently excluding them from any Hostname-scoped segment (e.g. App traffic).
+        params: { ...params, page_location: location.href, page_title: document.title },
+      }),
       // Lets the request complete even if it's fired right before the tab/iframe
       // closes (e.g. the step_exit calls sent from a pagehide listener).
       keepalive: true,
