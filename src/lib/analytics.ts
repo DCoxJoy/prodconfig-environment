@@ -1,26 +1,54 @@
 'use client';
 
-// Thin wrapper around GA4 (window.gtag, loaded in layout.tsx) and Vercel Web
-// Analytics' custom-event track() — the two tools this app sends events to (see
-// layout.tsx for how each is loaded). Every call site just calls trackEvent();
-// this file is the one place that knows there are two destinations, and each is
-// wrapped so a blocked/absent script (an ad blocker, or a Vercel plan without
-// custom events) never breaks the calling code.
+// Thin wrapper around GA4 and Vercel Web Analytics' custom-event track() — the two
+// tools this app sends events to. Every call site just calls trackEvent(); this file
+// is the one place that knows there are two destinations.
+//
+// GA4 events go through /api/analytics/collect (server-side Measurement Protocol)
+// rather than calling window.gtag('event', ...) directly — a direct client-side call
+// was confirmed to never reach GA4 when the app is embedded (third-party-iframe
+// tracker blocking in the visitor's browser). Routing through our own server sidesteps
+// that entirely, for both the embedded and direct-visit cases alike. layout.tsx's
+// gtag.js script still loads independently of this — it's what drives GA4's own
+// automatic page_view/session tracking, untouched by this change.
 import { track as vercelTrack } from '@vercel/analytics';
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
+// Stable per-visitor id GA4 uses to stitch these events into one user/session
+// timeline, generated once and reused from localStorage. Deliberately independent of
+// gtag.js's own client_id — that would mean depending on gtag having loaded and run
+// successfully, which is exactly what's unreliable in the embedded case this exists
+// to work around.
+function getClientId(): string {
+  const STORAGE_KEY = 'ga_client_id';
+  const generate = () =>
+    crypto.randomUUID?.() ?? `${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return stored;
+    const id = generate();
+    localStorage.setItem(STORAGE_KEY, id);
+    return id;
+  } catch {
+    // localStorage unavailable (private browsing, disabled) — event still sends,
+    // just without stitching across this visitor's other events.
+    return generate();
   }
 }
 
 export function trackEvent(name: string, params: EventParams = {}): void {
   try {
-    window.gtag?.('event', name, params);
+    fetch('/api/analytics/collect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: getClientId(), name, params }),
+      // Lets the request complete even if it's fired right before the tab/iframe
+      // closes (e.g. the step_exit calls sent from a pagehide listener).
+      keepalive: true,
+    });
   } catch {
-    // GA4 not loaded — ignore
+    // fetch unavailable — ignore, matches the fire-and-forget pattern below
   }
   try {
     vercelTrack(name, params);

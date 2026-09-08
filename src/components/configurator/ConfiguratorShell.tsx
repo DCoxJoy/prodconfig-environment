@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IconRefresh, IconArrowRight } from '@tabler/icons-react';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner, usePartnerMode } from '../../lib/PartnerContext';
@@ -95,6 +95,61 @@ export default function ConfiguratorShell() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per step change, not on every device/feature edit within a step
   }, [displayStep]);
+
+  // Time-on-step — pairs with step_view to give each step's average time spent
+  // (bounce/drop-off itself needs no extra event: it's read straight off step_view's
+  // existing step sequence via a GA4 funnel exploration). stepTimingRef tracks the
+  // currently-displayed step and when it was entered; exitReported guards against
+  // double-firing when both the visibilitychange and pagehide listeners below catch
+  // the same tab close.
+  const stepTimingRef = useRef<{ step: StepId; enteredAt: number; exitReported: boolean } | null>(null);
+
+  useEffect(() => {
+    const previous = stepTimingRef.current;
+    if (previous && !previous.exitReported) {
+      trackEvent('step_exit', {
+        step: previous.step,
+        app_version: version,
+        mode: partnerMode,
+        time_on_step_ms: Date.now() - previous.enteredAt,
+      });
+    }
+    stepTimingRef.current = { step: displayStep, enteredAt: Date.now(), exitReported: false };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per step change, not on every device/feature edit within a step
+  }, [displayStep]);
+
+  // Catches the last step of a session, which a step-to-step comparison alone can
+  // never see (there's no "next" step_view to diff against). pagehide is the
+  // reliable signal for an actual tab/iframe close; visibilitychange('hidden') also
+  // covers a background/minimized tab, which pagehide can miss. Both are wired
+  // since either can fire first depending on browser/platform — exitReported on the
+  // ref (not state, so this doesn't trigger a render) makes whichever fires second
+  // a no-op. Note: closing the embed panel via embed.js's FAB doesn't unload this
+  // iframe (it's just slid off-screen via CSS), so it isn't caught by either listener
+  // — only a real tab close/navigation/backgrounding is.
+  useEffect(() => {
+    function reportExit() {
+      const current = stepTimingRef.current;
+      if (current && !current.exitReported) {
+        current.exitReported = true;
+        trackEvent('step_exit', {
+          step: current.step,
+          app_version: version,
+          mode: partnerMode,
+          time_on_step_ms: Date.now() - current.enteredAt,
+        });
+      }
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') reportExit();
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', reportExit);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', reportExit);
+    };
+  }, [version, partnerMode]);
 
   const meta         = STEP_META[displayStep];
   const mainStepIndex = MAIN_STEPS.indexOf(displayStep);
