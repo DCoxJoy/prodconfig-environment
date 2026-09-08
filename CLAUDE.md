@@ -145,11 +145,49 @@ partner route.
   resolves `partner?.slug` to `'default'`/`'cell-medics'`/`'partner-one-it'` so all
   three can be filtered separately in reporting from the one shared property.
 - **Events tracked:** `step_view` (fires once per funnel step reached, carrying
-  device/feature_count/mode — the primary funnel signal), `contact_sales_click`
-  (source: certified/escalation/manual, mailto_flow), `add_to_cart_click`,
-  `share_bundle_click`, `reset_click`, `no_products_found`, `ai_edit_result`
-  (matched/reason). Instrumented in `ConfiguratorShell.tsx`, `StepBundle.tsx`, and
-  `StepReview.tsx` at the exact points those states/actions already occur.
+  device/feature_count/mode — the primary funnel signal), `step_exit` (pairs with
+  step_view — see below), `contact_sales_click` (source: certified/escalation/manual,
+  mailto_flow), `add_to_cart_click`, `share_bundle_click`, `reset_click`,
+  `no_products_found`, `ai_edit_result` (matched/reason). Instrumented in
+  `ConfiguratorShell.tsx`, `StepBundle.tsx`, and `StepReview.tsx` at the exact points
+  those states/actions already occur.
+- **`step_exit` — time-on-step tracking.** `ConfiguratorShell.tsx` fires `step_exit`
+  (`step`, `time_on_step_ms`) whenever the user moves off a step, timed from a
+  `useRef` set on entry (not state — doesn't trigger a render). A `visibilitychange`
+  ('hidden')/`pagehide` listener pair catches the last step of a session too, which a
+  step-to-step diff alone can never see (no "next" step_view to compare against);
+  `exitReported` on the ref guards against double-firing if both listeners catch the
+  same close. Registered in GA4 as custom dimension `Step` (event param `step`) and
+  custom metric `Time on Step` (event param `time_on_step_ms`, unit Milliseconds) —
+  average time per step reads as Sum(Time on Step) ÷ Event count in an Explore table.
+  Known gap: closing the `embed.js` FAB panel doesn't unload the iframe (it's just
+  slid off-screen via CSS), so that specific action isn't caught by either listener —
+  only a real tab close/navigation/backgrounding is.
+- **GA4 events are sent server-side, not via client-side `gtag()`.**
+  `trackEvent()` POSTs to `/api/analytics/collect`, which relays to GA4's Measurement
+  Protocol using a `GA4_API_SECRET` env var (Measurement Protocol API secret, GA4
+  Admin → Data Streams → your stream). This exists because a direct client-side
+  `gtag('event', ...)` call was confirmed (via GA4 Realtime, tested against the live
+  embedded widget) to never reach GA4 when the app is embedded — third-party-iframe
+  tracker blocking in the visitor's browser blocks the outgoing request before it's
+  even sent, silently, with no console error. A server-to-server call has no browser
+  in the path at all, so it isn't subject to that restriction, and reaches GA4 for
+  both the embedded and direct-visit cases alike. Vercel Analytics was unaffected by
+  this the whole time (still sends client-side via `@vercel/analytics`, its own
+  requests aren't on browser tracker-blocklists) — it remained the reliable number for
+  embedded traffic while this was being diagnosed and fixed.
+  `layout.tsx`'s `gtag.js` script still loads independently of this — it's what
+  drives GA4's own automatic `page_view`/session tracking, untouched by this change.
+  Each event carries a stable per-visitor `client_id` (generated once, stored in
+  `localStorage`, deliberately independent of gtag.js's own client_id so it doesn't
+  depend on gtag having loaded/run successfully) plus `page_location`/`page_title`
+  (the app's own iframe URL) — without the latter, GA4 has no browser context to
+  derive Hostname/page dimensions from, and a server-relayed event lands with
+  Hostname `(not set)`, silently excluded from any Hostname-scoped segment (e.g. the
+  `App traffic` segment built for Explore reporting) even though it shows up fine in
+  Realtime (which applies no segment). Confirmed via GA4 Realtime against the live
+  embedded widget after this fix: `step_view` now arrives correctly from embedded
+  sessions, not just direct visits.
 - **HubSpot tracking — default app only.** The HubSpot loader script (portal
   `20662622`, same portal StepContact.tsx's form already posts to) is loaded in
   `ConfiguratorApp.tsx` only when `!partner`. Deliberately excluded from partner
@@ -177,7 +215,8 @@ partner route.
 | `src/components/configurator/StepReview.tsx` | Fetches `/api/bundle` on mount; calls `/api/ai-edit` for AI edits; no-products message; unmet-feature banner; item name/thumbnail link to BC product page |
 | `src/lib/questions.ts` | `ENV_QUESTIONS_TABLET` — `power_needed` removed, `mount_install` added (conditional); `getActiveTabletQuestions(mountSurface?)` exported |
 | `src/lib/catalog.ts` | Feature labels updated; `vesa_compatible` + `magconnect` + `screen_protector` removed from `DEVICE_FEATURE_MAP` |
-| `src/lib/analytics.ts` | `trackEvent()`/`appVersion()` — shared GA4 + Vercel Analytics event helper for all three versions |
+| `src/lib/analytics.ts` | `trackEvent()`/`appVersion()` — shared GA4 + Vercel Analytics event helper for all three versions; GA4 leg POSTs to `/api/analytics/collect` (server-side), not client-side `gtag()` |
+| `src/app/api/analytics/collect/route.ts` | Server-side relay to GA4's Measurement Protocol — bypasses the browser (and its tracker blocking) entirely; requires `GA4_API_SECRET` env var |
 | `src/lib/aiEdit.ts` | **Superseded** — retained for reference; no longer imported |
 | `src/components/ui/HubSpotForm.tsx` | **Superseded** — retained; embed approach abandoned |
 | `src/types/index.ts` | `BundleItem` — `productUrl` (BC product page link), `unmetFeatureLabels` (disclosure banner) |
