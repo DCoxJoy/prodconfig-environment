@@ -178,14 +178,20 @@ partner route.
   embedded traffic while this was being diagnosed and fixed.
   `layout.tsx`'s `gtag.js` script still loads independently of this — it's what
   drives GA4's own automatic `page_view`/session tracking, untouched by this change.
-  Each event carries a stable per-visitor `client_id` (generated once, stored in
-  `localStorage`, deliberately independent of gtag.js's own client_id so it doesn't
-  depend on gtag having loaded/run successfully) plus `page_location`/`page_title`
-  (the app's own iframe URL) — without the latter, GA4 has no browser context to
-  derive Hostname/page dimensions from, and a server-relayed event lands with
-  Hostname `(not set)`, silently excluded from any Hostname-scoped segment (e.g. the
-  `App traffic` segment built for Explore reporting) even though it shows up fine in
-  Realtime (which applies no segment). Confirmed via GA4 Realtime against the live
+  Each event carries a `client_id` resolved by `getClientId()` — prefers gtag.js's
+  own client_id (`gtag('get', ID, 'client_id', cb)`) so our events join the same
+  session/user GA4 already tracks via gtag's automatic events, falling back to a
+  self-generated, `localStorage`-persisted id within 300ms if gtag isn't available or
+  doesn't respond (exactly the embedded/blocked case this relay exists for). The
+  initial version used only the self-generated id unconditionally — that broke
+  session- and user-scoped reporting (segments, the Funnel exploration) even though
+  flat event counts were correct, since GA4 had no session history for an id
+  disconnected from gtag's own. Also sends `page_location`/`page_title` (the app's
+  own iframe URL) — without that, GA4 has no browser context to derive Hostname/page
+  dimensions from, and a server-relayed event lands with Hostname `(not set)`,
+  silently excluded from any Hostname-scoped segment (e.g. the `App traffic` segment
+  built for Explore reporting) even though it shows up fine in Realtime (which
+  applies no segment). Confirmed via GA4 Realtime against the live
   embedded widget after this fix: `step_view` now arrives correctly from embedded
   sessions, not just direct visits.
 - **HubSpot tracking — default app only.** The HubSpot loader script (portal
