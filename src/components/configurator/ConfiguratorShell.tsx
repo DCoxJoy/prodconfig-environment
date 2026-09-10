@@ -80,12 +80,21 @@ export default function ConfiguratorShell() {
     window.scrollTo(0, 0);
   }, [displayStep]);
 
-  // Funnel event — fires once per step a user actually reaches (intro is folded into
-  // 'devices' via displayStep, so this never double-counts the overlay). device/
-  // feature_count ride along here rather than as separate events, since GA4/Vercel
-  // both accept arbitrary params per event and this is the one place every step
-  // transition already funnels through.
+  // Funnel event — fires once per step a user actually reaches, starting only once
+  // Get Started is clicked (step leaves 'intro'). The intro splash itself was
+  // previously counted as the 'devices' step_view on mount, before any real
+  // interaction — since embed.js mounts the iframe immediately even while its panel
+  // is closed, this fired for every page load of any page with the widget embedded,
+  // massively inflating the 'devices' step relative to genuine usage (confirmed via
+  // GA4: 2.1K 'devices' events vs. low single/double digits for every later step).
+  // Depends on `step` (not `displayStep`) because displayStep's *value* doesn't
+  // change across the intro→devices transition (both fold to 'devices'), so an
+  // effect keyed on displayStep alone would never re-run at the exact moment that
+  // matters. device/feature_count ride along here rather than as separate events,
+  // since GA4/Vercel both accept arbitrary params per event and this is the one
+  // place every step transition already funnels through.
   useEffect(() => {
+    if (step === 'intro') return;
     trackEvent('step_view', {
       step: displayStep,
       app_version: version,
@@ -94,14 +103,16 @@ export default function ConfiguratorShell() {
       feature_count: features.length,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per step change, not on every device/feature edit within a step
-  }, [displayStep]);
+  }, [step]);
 
   // Time-on-step — pairs with step_view to give each step's average time spent
   // (bounce/drop-off itself needs no extra event: it's read straight off step_view's
   // existing step sequence via a GA4 funnel exploration). stepTimingRef tracks the
   // currently-displayed step and when it was entered; exitReported guards against
   // double-firing when both the visibilitychange and pagehide listeners below catch
-  // the same tab close.
+  // the same tab close. Stays null while on the intro splash (same reasoning as the
+  // step_view effect above) — a Reset still reports an exit for whatever real step
+  // the user was on before it, just doesn't start a new "intro" timing entry.
   const stepTimingRef = useRef<{ step: StepId; enteredAt: number; exitReported: boolean } | null>(null);
 
   useEffect(() => {
@@ -114,9 +125,10 @@ export default function ConfiguratorShell() {
         time_on_step_ms: Date.now() - previous.enteredAt,
       });
     }
-    stepTimingRef.current = { step: displayStep, enteredAt: Date.now(), exitReported: false };
+    stepTimingRef.current =
+      step === 'intro' ? null : { step: displayStep, enteredAt: Date.now(), exitReported: false };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per step change, not on every device/feature edit within a step
-  }, [displayStep]);
+  }, [step]);
 
   // Catches the last step of a session, which a step-to-step comparison alone can
   // never see (there's no "next" step_view to diff against). pagehide is the
