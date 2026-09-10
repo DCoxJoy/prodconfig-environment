@@ -70,6 +70,11 @@
   iframe.style.maxWidth = maxWidth;
   iframe.style.border = "none";
   iframe.style.display = "block";
+  // Without this, a block element narrower than its parent (i.e. whenever maxWidth
+  // actually caps the width, like a wide HubSpot column) defaults to flush-left, not
+  // centered — this is the "slightly off center" symptom.
+  iframe.style.marginLeft = "auto";
+  iframe.style.marginRight = "auto";
 
   // Where to render: an explicit container (data-target, a CSS selector) if given —
   // needed because many CMS/page builders move injected <script> tags to the page
