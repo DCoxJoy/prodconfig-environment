@@ -163,6 +163,23 @@ partner route.
   Known gap: closing the `embed.js` FAB panel doesn't unload the iframe (it's just
   slid off-screen via CSS), so that specific action isn't caught by either listener —
   only a real tab close/navigation/backgrounding is.
+- **Fix: tracking gated on Get Started, not intro mount.** Both `step_view` and the
+  `step_exit`/timing effect key off `step` and return early while `step === 'intro'`
+  — they used to key off `displayStep` and fire unconditionally on mount, since
+  `displayStep` folds `'intro'` to `'devices'` immediately. Because `embed.js` mounts
+  its iframe eagerly even while the panel is closed, that counted **every page load
+  of any page with the widget embedded** as a `devices` step_view, before any real
+  interaction — confirmed via GA4: 2.1K `devices` events vs. low single/double
+  digits for every later step. The same phantom entry also armed the exit listeners,
+  which is why `step_exit` looked inflated relative to `step_view` in Vercel
+  Analytics (552 vs. 15 visitors) — not double-firing, just counting real exits from
+  a mostly-phantom population. `displayStep` itself can't drive this gating (its
+  *value* doesn't change across the intro→devices transition, so an effect keyed on
+  it alone never re-runs at the moment Get Started is clicked) — `step` does. A
+  Reset still reports a `step_exit` for whatever real step preceded it; it just
+  doesn't start a new timing entry for the intro screen. Verified with Playwright:
+  zero analytics calls before Get Started is clicked, `step_view:devices` fires
+  immediately after.
 - **GA4 events are sent server-side, not via client-side `gtag()`.**
   `trackEvent()` POSTs to `/api/analytics/collect`, which relays to GA4's Measurement
   Protocol using a `GA4_API_SECRET` env var (Measurement Protocol API secret, GA4
