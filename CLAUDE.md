@@ -110,17 +110,21 @@ actually live in production on `main`, for orientation. The default app (`/`) is
 byte-for-byte unaffected by any of this; every behavior below only ever activates on a
 partner route.
 
-- **Two live partners:** `cell-medics` ("Cell Medics LTD") and `partner-one-it`
-  ("Partner One IT") — config in `src/lib/partners.ts`. Adding a partner, a SKU
-  allowlist, a brand color, or a contact email is a one-line edit there, never a code
-  change.
+- **Three live partners:** `cell-medics` ("Cell Medics LTD"), `partner-one-it`
+  ("Partner One IT"), and `zones` ("ZONES: First Choice IT") — config in
+  `src/lib/partners.ts`. Adding a partner, a SKU allowlist, a brand color, or a
+  contact email is a one-line edit there, never a code change — confirmed adding
+  `zones` touched no other file (only a non-functional comment elsewhere named the
+  other two slugs as an example). `zones`' `brandColor` (`#0B1F3D`) and
+  `contactEmail` (`david.cox@thejoyfactory.com`) are both placeholders pending the
+  real values from ZONES.
 - **Branding:** partner name replaces "BUNDLE BUILDER" in the header and the intro
   splash's kicker; `brandColor` (if set) overrides `--color-brand`/`--color-brand-hover`
   for the whole app via an inline style, so every `bg-brand`/`text-brand`/`border-brand`
   utility picks it up automatically — no component touches partner color directly.
 - **SKU scoping:** `applyPartnerAllowlist()` filters `/api/bundle` and `/api/ai-edit`'s
-  candidate pool to a partner's `skuAllowlist` when non-empty; empty (both partners,
-  currently) is a full no-op.
+  candidate pool to a partner's `skuAllowlist` when non-empty; empty (all three
+  partners, currently) is a full no-op.
 - **No Add to cart for any partner** — replaced by Contact Sales + Share Bundle
   (or, once `contactEmail` is set, "Send a Quote" alone in rep mode — see below).
 - **Rep/customer mailto end-flow, gated on `PartnerConfig.contactEmail`:** once a
@@ -129,8 +133,8 @@ partner route.
   button) skips the HubSpot-backed form entirely and hands off to a `mailto:` instead —
   no lead data captured for that partner's traffic. `?mode=rep` (blank `To:`, `cc:` the
   partner) shows a single "Send a Quote" button; `?mode=customer` (the default) shows
-  Contact Sales (`to:` the partner) + Share Bundle. Both partners have `contactEmail`
-  set today, so both are live on this flow. `data-mode`/`data-partner` on
+  Contact Sales (`to:` the partner) + Share Bundle. All three partners have
+  `contactEmail` set today, so all three are live on this flow. `data-mode`/`data-partner` on
   `embed.js`/`embed-inline.js` forward through to the iframe's `?mode=`/`/p/{slug}`.
 - **Plain-text only** — mailto: bodies can't render HTML/tables in any mail client;
   this is a hard platform limitation, not a gap. A real HTML "quote" email would need
@@ -142,8 +146,14 @@ partner route.
   (`G-2NYWBB5T4Q`, loaded in `src/app/layout.tsx`) and `@vercel/analytics` send
   events from the default app and every partner route alike. `src/lib/analytics.ts`'s
   `trackEvent(name, params)` fires both destinations from one call, and `appVersion()`
-  resolves `partner?.slug` to `'default'`/`'cell-medics'`/`'partner-one-it'` so all
-  three can be filtered separately in reporting from the one shared property.
+  resolves `partner?.slug` to `'default'`/`'cell-medics'`/`'partner-one-it'`/`'zones'`
+  (or any future partner's slug, unmodified — it's a pure passthrough of
+  `PartnerConfig.slug`) so every version can be filtered separately in reporting from
+  the one shared property. **Reminder for any new partner:** the GA4 `App traffic`
+  segment's regex condition (`^(default|cell-medics|partner-one-it|zones)$`) must be
+  updated to include the new slug too, or that partner's traffic is invisible in
+  GA4 Explore reports (Realtime is unaffected either way, since it applies no
+  segment) — this is a GA4 Admin step, not a code change.
 - **Events tracked:** `step_view` (fires once per funnel step reached, carrying
   device/feature_count/mode — the primary funnel signal), `step_exit` (pairs with
   step_view — see below), `contact_sales_click` (source: certified/escalation/manual,

@@ -38,6 +38,14 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     brandColor: '#0071EB', // Partner One's own brand color
     contactEmail: 'sales@partneroneit.com', // TODO: confirm this is the real address — placeholder from the spec doc
   },
+  zones: {
+    slug: 'zones',
+    name: 'ZONES: First Choice IT',
+    skuAllowlist: [], // populate once this partner provides their SKU list
+    brandColor: '#0B1F3D', // placeholder deep navy blue — swap for ZONES' real brand color
+    contactEmail: 'david.cox@thejoyfactory.com', // TODO: placeholder — replace once ZONES provides their real address
+    // No currency override — prices display in USD as-is, same as Partner One IT.
+  },
 };
 
 export function getPartner(slug: string): PartnerConfig | null {
