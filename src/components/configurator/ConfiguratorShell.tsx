@@ -456,7 +456,7 @@ export default function ConfiguratorShell() {
               alone doesn't stop clicks/keyboard activation. */}
           <div
             className={[
-              'relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24',
+              'relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24 max-w-[400px]',
               'transition-opacity duration-300',
               consentChecked ? 'opacity-100' : 'opacity-50',
             ].join(' ')}
@@ -477,7 +477,7 @@ export default function ConfiguratorShell() {
               <IconArrowRight size={18} />
             </button>
           </div>
-          <div className="relative flex items-start gap-2 text-[11px] text-stone-500 text-left leading-relaxed max-w-[340px] mt-4 px-6">
+          <div className="relative flex items-start gap-2 text-[11px] text-stone-500 text-left leading-relaxed max-w-[400px] mt-4 px-6">
             <input
               id="cookie-consent-checkbox"
               type="checkbox"
