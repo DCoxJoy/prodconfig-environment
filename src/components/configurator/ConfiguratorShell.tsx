@@ -477,7 +477,7 @@ export default function ConfiguratorShell() {
               <IconArrowRight size={18} />
             </button>
           </div>
-          <div className="relative flex items-start gap-2 text-[11px] text-stone-500 text-left leading-relaxed max-w-[400px] mt-4 px-6">
+          <div className="relative flex items-start gap-2 text-[11px] text-stone-500 text-left leading-relaxed max-w-[600px] mt-4 px-6">
             <input
               id="cookie-consent-checkbox"
               type="checkbox"
