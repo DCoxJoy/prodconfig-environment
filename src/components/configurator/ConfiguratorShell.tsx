@@ -486,9 +486,9 @@ export default function ConfiguratorShell() {
               className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand cursor-pointer"
             />
             <label htmlFor="cookie-consent-checkbox" className="cursor-pointer">
-              I acknowledge that this widget uses cookies to operate and to remember my chat history, and that
-              usage information may be shared with our analytics providers. California residents have the right
-              to know, delete, and opt out of the sale or sharing of personal information — see our{' '}
+              I acknowledge that this widget uses cookies to operate and to improve user browser experience, and
+              that usage information may be used to analyze site traffic, and personalize marketing. Users have
+              the right to know, delete, and opt out of the sharing of personal information — see our{' '}
               <a
                 href="https://thejoyfactory.com/privacy-policy-2/"
                 target="_blank"

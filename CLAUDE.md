@@ -114,11 +114,14 @@ Every changed line should trace back to the actual request. If a diff drifts int
   The Privacy Policy link inside the disclosure text calls `stopPropagation()` on
   click so opening it doesn't also toggle the checkbox (both are wired to the same
   `<label>`/`htmlFor`, which browsers otherwise forward any inner click to). The
-  disclosure copy itself was rewritten with California residents' CCPA/CPRA rights
-  (know/delete/opt-out of sale-or-sharing) in mind — drafted in good faith, not
-  reviewed by counsel; treat it as a starting point pending real legal review, not a
-  certified-compliant disclosure. Applies identically to the default app and all
-  three partner routes, since `ConfiguratorShell` is shared by both. Verified with
+  disclosure copy itself was rewritten with data-privacy rights (know/delete/opt-out
+  of sharing) in mind, then broadened per follow-up feedback from California-specific
+  language to a general "Users have the right..." framing, and from "shared with our
+  analytics providers" to "used to analyze site traffic, and personalize marketing" —
+  drafted in good faith, not reviewed by counsel; treat it as a starting point pending
+  real legal review, not a certified-compliant disclosure. Applies identically to the
+  default app and all three partner routes, since `ConfiguratorShell` is shared by
+  both. Verified with
   Playwright: checkbox starts unchecked, button starts disabled, card starts at
   `opacity: 0.5`; clicking the disabled button fires zero tracking events; checking
   the box re-enables the button and restores full opacity; a real click after that
