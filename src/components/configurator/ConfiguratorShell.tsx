@@ -57,6 +57,11 @@ export default function ConfiguratorShell() {
   // handleGetStarted.
   const [introOverlayVisible, setIntroOverlayVisible] = useState(true);
   const [introFading, setIntroFading]                 = useState(false);
+  // Gates Get Started until the cookie/privacy disclosure checkbox is checked — the
+  // card dims (opacity) and the button is genuinely disabled (not just styled) until
+  // this is true. Reset alongside the rest of the intro state so a fresh Reset always
+  // re-shows an unchecked consent gate, not whatever was left checked before.
+  const [consentChecked, setConsentChecked] = useState(false);
 
   // What the app shell actually renders — falls back to 'devices' while the intro
   // overlay covers the screen, so the content blurred behind it is the real first
@@ -284,6 +289,7 @@ export default function ConfiguratorShell() {
     setEscalationRequest('');
     setIntroFading(false);
     setIntroOverlayVisible(true);
+    setConsentChecked(false);
   }
 
   const showNavRow  = displayStep !== 'devices' && displayStep !== 'review' && displayStep !== 'bundle' && displayStep !== 'contact';
@@ -444,30 +450,57 @@ export default function ConfiguratorShell() {
           {/* Unequal top/bottom spacers (1:2) shift the card up by a third of its
               centered gap-to-top distance, instead of sitting dead-center. */}
           <div style={{ flex: '1 0 0%' }} />
-          <div className="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24">
+          {/* Dims (not just the button) until the disclosure checkbox below is checked —
+              "grayed out" is meant to read at the card level, not just the CTA. The
+              button is additionally given a real `disabled` attribute, since opacity
+              alone doesn't stop clicks/keyboard activation. */}
+          <div
+            className={[
+              'relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center px-6 py-24',
+              'transition-opacity duration-300',
+              consentChecked ? 'opacity-100' : 'opacity-50',
+            ].join(' ')}
+          >
             <div className="text-[12px] font-bold text-brand uppercase tracking-widest mb-3">{partner?.name ?? 'Start Here'}</div>
             <h1 className="text-[32px] font-bold text-stone-900 mb-8">Solution Bundle Builder</h1>
             <button
               onClick={handleGetStarted}
-              className="flex items-center gap-2 bg-brand text-white rounded-xl px-6 py-3.5 text-[15px] font-semibold cursor-pointer hover:bg-brand-hover transition-colors"
+              disabled={!consentChecked}
+              className={[
+                'flex items-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-semibold transition-colors',
+                consentChecked
+                  ? 'bg-brand text-white cursor-pointer hover:bg-brand-hover'
+                  : 'bg-stone-300 text-stone-500 cursor-not-allowed',
+              ].join(' ')}
             >
               Get Started
               <IconArrowRight size={18} />
             </button>
           </div>
-          <p className="relative text-[11px] text-stone-500 text-center leading-relaxed max-w-[340px] mt-4 px-6">
-            This widget uses a cookie to interact with website visitors and to provide your chat history. To find
-            out more about this cookie, see our{' '}
-            <a
-              href="https://thejoyfactory.com/privacy-policy-2/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-stone-600 hover:text-stone-800"
-            >
-              Privacy Policy
-            </a>
-            .
-          </p>
+          <div className="relative flex items-start gap-2 text-[11px] text-stone-500 text-left leading-relaxed max-w-[340px] mt-4 px-6">
+            <input
+              id="cookie-consent-checkbox"
+              type="checkbox"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand cursor-pointer"
+            />
+            <label htmlFor="cookie-consent-checkbox" className="cursor-pointer">
+              I acknowledge that this widget uses cookies to operate and to remember my chat history, and that
+              usage information may be shared with our analytics providers. California residents have the right
+              to know, delete, and opt out of the sale or sharing of personal information — see our{' '}
+              <a
+                href="https://thejoyfactory.com/privacy-policy-2/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-stone-600 hover:text-stone-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Privacy Policy
+              </a>{' '}
+              for details, including how to submit a request.
+            </label>
+          </div>
           <div style={{ flex: '2 0 0%' }} />
         </div>
       )}

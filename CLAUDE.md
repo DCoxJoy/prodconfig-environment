@@ -102,6 +102,27 @@ Every changed line should trace back to the actual request. If a diff drifts int
 - **App header top corners rounded** — `AppHeader.tsx` carries `rounded-t-[10px]` (top-left/top-right only, bottom stays square where it meets the step content below). Verified computed `border-radius: 10px 10px 0px 0px`.
 - **`embed.js` FAB hides entirely while the panel is open, instead of collapsing to a close (X) circle** — now that the app's own in-panel header carries the close control (see the bullet above), the FAB's old collapsed-circle-with-red-X "open" state was a redundant second close button floating over the host page. `.agc-fab.agc-active` was simplified from the sizing/border-radius rules that turned it into a circle to a single `display: none`; the `#agc-icon-close` SVG (and its now-unused CSS rule) were removed from the FAB's markup entirely since nothing shows it anymore. The FAB reappears automatically once the panel closes (via the header's X, or however else `toggleWidget()` gets called) — same underlying toggle as before, just nothing rendered for the FAB in the "open" state now. Mobile idle collapse-to-circle (`:not(.agc-active)`, unrelated state) is untouched. Verified with Playwright: FAB is visible before opening, hidden while the panel is open (with the in-panel header's close button confirmed present instead), and reappears after closing via that header button.
 - **App-wide header, matching the site's chat-widget design** — new `src/components/ui/AppHeader.tsx` renders a persistent red title bar (badge icon in a ringed circle + "BUNDLE BUILDER" + "Powered by The Joy Factory") above the app on every step, including the intro splash. It's rendered in `page.tsx` above the `page-outer` padded wrapper (not inside `ConfiguratorShell`), so it sits outside the intro overlay's `absolute inset-0` scope and reads as fixed chrome above the changing content rather than something the overlay could cover. The close (X) button only renders when the app detects it's actually embedded (`?embed=true` in the iframe src *and* `window.parent !== window`, checked client-side in a `useEffect` — a direct/standalone visit has nothing to close, so no button shows there). Clicking it does `window.parent.postMessage({ type: 'agc-close' }, '*')` rather than anything that assumes same-origin, since the app can be embedded on any WordPress domain. `embed.js` listens for that message (`event.source === iframe.contentWindow` gate, so only its own iframe can trigger it) and calls the same `toggleWidget()` the FAB itself uses, closing the floating panel — the FAB's own click-to-close behavior is untouched, this is an additional path into the same toggle. Scoped to the `embed.js` floating-panel flow only; `embed-inline.js`'s permanently-inline embed has no panel to close, so its iframe doesn't listen for the message and the header's X is a no-op there (not currently a use case that's been asked for). Verified with Playwright: standalone visit shows the header with 2-line badge+text and no X; a simulated `?embed=true` iframe inside a parent page shows the X, and clicking it delivers `{ type: 'agc-close' }` to the parent's `message` listener.
+- **Intro overlay gated behind a consent checkbox** — supersedes the plain disclaimer
+  paragraph from the "Intro overlay cookie disclaimer" bullet above (the link/text
+  location is the same; the text itself and the interaction around it changed).
+  `ConfiguratorShell.tsx`'s intro card (kicker/title/Get Started button) now dims to
+  `opacity-50` and the button carries a real `disabled` attribute (not just a style —
+  `disabled` also blocks keyboard activation, which opacity/pointer-events alone
+  wouldn't) until a new `consentChecked` state is `true`. A checkbox paired with the
+  disclosure text sets it; both reset to unchecked whenever the intro reappears
+  (first load and every Reset), so consent is never carried over from a prior view.
+  The Privacy Policy link inside the disclosure text calls `stopPropagation()` on
+  click so opening it doesn't also toggle the checkbox (both are wired to the same
+  `<label>`/`htmlFor`, which browsers otherwise forward any inner click to). The
+  disclosure copy itself was rewritten with California residents' CCPA/CPRA rights
+  (know/delete/opt-out of sale-or-sharing) in mind — drafted in good faith, not
+  reviewed by counsel; treat it as a starting point pending real legal review, not a
+  certified-compliant disclosure. Applies identically to the default app and all
+  three partner routes, since `ConfiguratorShell` is shared by both. Verified with
+  Playwright: checkbox starts unchecked, button starts disabled, card starts at
+  `opacity: 0.5`; clicking the disabled button fires zero tracking events; checking
+  the box re-enables the button and restores full opacity; a real click after that
+  correctly fires `step_view:devices`.
 
 ### Channel-Partner Mode (V2) — live on `/p/[partnerSlug]`
 
