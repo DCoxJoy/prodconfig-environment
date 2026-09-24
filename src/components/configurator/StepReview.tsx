@@ -8,6 +8,7 @@ import { getTablerIcon } from '../../lib/iconMap';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
 import { usePartner } from '../../lib/PartnerContext';
 import { formatPrice } from '../../lib/partners';
+import { getCellMedicsCertifiedCaseSku } from '../../lib/cellMedicsCertified';
 import { trackEvent, appVersion } from '../../lib/analytics';
 import QtyControl from '../ui/QtyControl';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -20,11 +21,20 @@ interface StepReviewProps {
 export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
   const { state, liveProducts, liveBundleOptions, qtys, selectedBundleOption, dispatch } = useConfigurator();
   const partner = usePartner();
-  const { device, features, scenarios, editNote, appliedEdits } = state;
+  const { device, certified, features, scenarios, editNote, appliedEdits } = state;
 
   const family   = getDeviceFamily(device?.id ?? '');
   const isIphone = isIphoneFamily(family);
   const version  = appVersion(partner?.slug);
+
+  // Cell Medics only: certified='yes' locks the bundle to that device's one certified
+  // case (see /api/bundle's certifiedCaseSku handling) instead of the normal scored
+  // pick from the full catalog. Also drives hiding pricing below (Cell Medics wants
+  // quantities only, for every bundle — certified or not).
+  const isCellMedics = partner?.slug === 'cell-medics';
+  const certifiedCaseSku = isCellMedics && certified === 'yes'
+    ? getCellMedicsCertifiedCaseSku(device?.id ?? '') ?? undefined
+    : undefined;
 
   // bundleLoading: true until BC bundle options arrive (or if already loaded, start false)
   const [bundleLoading, setBundleLoading] = useState(liveBundleOptions === null);
@@ -53,7 +63,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
     fetch('/api/bundle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios, partnerSlug: partner?.slug }),
+      body: JSON.stringify({ deviceName: device.name, isIphone, features, scenarios, partnerSlug: partner?.slug, certifiedCaseSku }),
     })
       .then(async r => {
         if (!r.ok) throw new Error(`Bundle API error: ${r.status}`);
@@ -242,19 +252,21 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                       <div className="text-[12px] text-stone-500 mt-0.5">
                         {isZero
                           ? <span className="text-stone-400 italic">Excluded from cart</span>
-                          : `${formatPrice(p.unitPrice, partner)} each`
+                          : !isCellMedics && `${formatPrice(p.unitPrice, partner)} each`
                         }
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:gap-1.5 sm:flex-shrink-0">
                     <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
-                    <div className={[
-                      'text-[14px] font-semibold text-right',
-                      isZero ? 'text-stone-300' : 'text-stone-900',
-                    ].join(' ')}>
-                      {isZero ? '—' : formatPrice(p.unitPrice * (qtys[i] ?? 0), partner)}
-                    </div>
+                    {!isCellMedics && (
+                      <div className={[
+                        'text-[14px] font-semibold text-right',
+                        isZero ? 'text-stone-300' : 'text-stone-900',
+                      ].join(' ')}>
+                        {isZero ? '—' : formatPrice(p.unitPrice * (qtys[i] ?? 0), partner)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {hasUnmetFeatures && (
@@ -275,14 +287,16 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
             );
           })}
 
-          {/* ── Bundle total ──────────────────────────────────────────────── */}
-          <div className="flex justify-between items-center pt-5 border-t border-stone-200 mt-1 mb-6">
-            <div>
-              <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
-              <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing</div>
+          {/* ── Bundle total — hidden for Cell Medics (quantities only, no pricing) ── */}
+          {!isCellMedics && (
+            <div className="flex justify-between items-center pt-5 border-t border-stone-200 mt-1 mb-6">
+              <div>
+                <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
+                <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing</div>
+              </div>
+              <div className="text-[24px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
             </div>
-            <div className="text-[24px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
-          </div>
+          )}
         </>
       )}
 

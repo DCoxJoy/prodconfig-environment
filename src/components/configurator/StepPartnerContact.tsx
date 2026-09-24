@@ -67,10 +67,13 @@ export default function StepPartnerContact({ source, escalationRequest, onBack }
               </div>
             ))}
           </div>
-          <div className="flex justify-between text-[13px] font-semibold text-stone-900 border-t border-stone-200 mt-3 pt-3">
-            <span>Sub-total</span>
-            <span>{formatPrice(total, partner)}</span>
-          </div>
+          {/* Cell Medics only: quantities, no pricing — same as the Review/Bundle steps. */}
+          {partner.slug !== 'cell-medics' && (
+            <div className="flex justify-between text-[13px] font-semibold text-stone-900 border-t border-stone-200 mt-3 pt-3">
+              <span>Sub-total</span>
+              <span>{formatPrice(total, partner)}</span>
+            </div>
+          )}
         </div>
       )}
 

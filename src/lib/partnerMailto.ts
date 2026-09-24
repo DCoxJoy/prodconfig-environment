@@ -30,6 +30,8 @@ export function buildPartnerMailto({
   const isRep = mode === 'rep';
   const showBundle = source === 'escalation' || source === 'manual';
   const total = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * (qtys[i] ?? 0), 0);
+  // Cell Medics only: quantities, no pricing — same as the Review/Bundle steps.
+  const hidePrices = partner.slug === 'cell-medics';
 
   const subject = isRep
     ? `Bundle Quote from ${partner.name}`
@@ -48,9 +50,9 @@ export function buildPartnerMailto({
     liveProducts.forEach((p, i) => {
       const qty = qtys[i] ?? 0;
       if (qty === 0) return;
-      lines.push(`• ${p.type}: ${p.name} (${p.sku}) ×${qty} — ${formatPrice(p.unitPrice * qty, partner)}`);
+      lines.push(`• ${p.type}: ${p.name} (${p.sku}) ×${qty}${hidePrices ? '' : ` — ${formatPrice(p.unitPrice * qty, partner)}`}`);
     });
-    lines.push('', `Sub-total: ${formatPrice(total, partner)}`);
+    if (!hidePrices) lines.push('', `Sub-total: ${formatPrice(total, partner)}`);
   }
   lines.push('', '---', 'No data from this session is stored — this email is the only record of these selections.');
 

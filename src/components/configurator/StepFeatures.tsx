@@ -4,6 +4,8 @@ import { IconShieldCheck, IconCheck, IconFilter, IconAlertTriangle } from '@tabl
 import { ALL_FEATURES } from '../../lib/catalog';
 import { getAllowedFeatures, getDeviceFamilyLabel, getDeviceFamily } from '../../lib/utils';
 import { useConfigurator } from '../../lib/ConfiguratorContext';
+import { usePartner } from '../../lib/PartnerContext';
+import { getCellMedicsCertifiedCaseSku } from '../../lib/cellMedicsCertified';
 import { FeatureId } from '../../types';
 
 interface StepFeaturesProps {
@@ -13,11 +15,20 @@ interface StepFeaturesProps {
 export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
   const { state, dispatch } = useConfigurator();
   const { device, certified, features } = state;
+  const partner = usePartner();
 
   const family        = getDeviceFamily(device?.id ?? '');
   const familyLabel   = getDeviceFamilyLabel(family);
   const allowedIds    = getAllowedFeatures(family);
   const filteredFeats = ALL_FEATURES.filter(f => allowedIds.includes(f.id));
+
+  // Cell Medics only: the certified question is limited to the two devices with an
+  // actual certified case (iPad 11" (A16), iPhone 17) — every other device skips it
+  // entirely and goes straight to the feature list below, same as picking "No,
+  // standard case" would. Every other version of the app is unaffected — the
+  // certified question always shows there, for every device, as it always has.
+  const isCellMedics      = partner?.slug === 'cell-medics';
+  const certifiedEligible = isCellMedics ? !!getCellMedicsCertifiedCaseSku(device?.id ?? '') : true;
 
   function pickCertified(val: 'yes' | 'no') {
     if (val === 'yes') {
@@ -35,7 +46,7 @@ export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
   return (
     <div className="px-6 py-6">
       {/* ── Certified gate ─────────────────────────────────────────────── */}
-      {certified === null && (
+      {certifiedEligible && certified === null && (
         <div className="mb-2">
           <p className="text-[14px] font-medium text-stone-800 mb-4">
             Do you need a certified rugged case<br className="hidden sm:block" /> (hazardous location rated)?
@@ -70,7 +81,7 @@ export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
       )}
 
       {/* ── Certified = yes ─────────────────────────────────────────────── */}
-      {certified === 'yes' && (
+      {certifiedEligible && certified === 'yes' && (
         <div>
           <div className="flex items-center gap-2 text-[12px] text-stone-500 mb-3">
             <IconAlertTriangle size={13} className="text-brand" />
@@ -78,19 +89,27 @@ export default function StepFeatures({ onCertifiedYes }: StepFeaturesProps) {
             <button onClick={resetCertified} className="text-brand font-semibold cursor-pointer">Change</button>
           </div>
           <div className="hint-strip">
-            You will be routed directly to our sales team — certified cases require a compatibility check.
+            {isCellMedics
+              ? 'Continue to the next step to choose your compatible mount and accessory.'
+              : 'You will be routed directly to our sales team — certified cases require a compatibility check.'}
           </div>
         </div>
       )}
 
       {/* ── Standard case — feature list ────────────────────────────────── */}
-      {certified === 'no' && (
+      {/* Also shown when the certified question was skipped entirely (Cell Medics,
+          non-qualifying device) — same feature list, just no "Standard case
+          selected / Change" header, since there was no certified choice made to
+          change back from. */}
+      {(certified === 'no' || !certifiedEligible) && (
         <div>
-          <div className="flex items-center gap-2 text-[12px] text-stone-500 mb-4">
-            <IconShieldCheck size={13} className="text-stone-400" />
-            Standard case selected.{' '}
-            <button onClick={resetCertified} className="text-brand font-semibold cursor-pointer">Change</button>
-          </div>
+          {certifiedEligible && (
+            <div className="flex items-center gap-2 text-[12px] text-stone-500 mb-4">
+              <IconShieldCheck size={13} className="text-stone-400" />
+              Standard case selected.{' '}
+              <button onClick={resetCertified} className="text-brand font-semibold cursor-pointer">Change</button>
+            </div>
+          )}
 
           {/* Filter badge */}
           <div className="flex items-center gap-2 bg-[#fff8f8] border border-[#f09595] rounded-lg px-3 py-2.5 text-[12px] text-[#993C1D] mb-4">

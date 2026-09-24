@@ -42,6 +42,11 @@ export default function ConfiguratorShell() {
   // original HubSpot-backed form, so a partner is never switched onto an email-only
   // flow with nowhere for that email to go.
   const partnerMailtoEnabled = !!partner?.contactEmail;
+  // Cell Medics only: certified='yes' continues through the normal flow (environment
+  // -> review -> bundle) instead of jumping straight to Contact Sales — see
+  // handleNext()'s 'features' branch and the onCertifiedYes prop passed to
+  // StepFeatures below. Every other version keeps today's immediate-contact behavior.
+  const isCellMedics = partner?.slug === 'cell-medics';
   const version = appVersion(partner?.slug);
 
   const [step, setStep]                   = useState<StepId>('intro');
@@ -185,7 +190,11 @@ export default function ConfiguratorShell() {
 
   function handleNext() {
     if (step === 'features') {
-      if (certified === 'yes') { goContactSales('certified'); return; }
+      if (certified === 'yes') {
+        if (isCellMedics) { setStep('environment'); return; }
+        goContactSales('certified');
+        return;
+      }
       if (features.length > 0) setStep('environment');
       return;
     }
@@ -363,7 +372,7 @@ export default function ConfiguratorShell() {
         {/* Step content */}
         <div>
           {displayStep === 'devices'     && <StepDevices onDeviceSelected={() => setStep('features')} />}
-          {displayStep === 'features'    && <StepFeatures onCertifiedYes={() => goContactSales('certified')} />}
+          {displayStep === 'features'    && <StepFeatures onCertifiedYes={() => { if (!isCellMedics) goContactSales('certified'); }} />}
           {displayStep === 'environment' && <StepEnvironment />}
           {displayStep === 'review'      && (
             <StepReview

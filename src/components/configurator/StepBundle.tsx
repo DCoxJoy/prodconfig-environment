@@ -33,6 +33,9 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
   // layout unchanged until one is added.
   const mailtoFlow = !!partner?.contactEmail;
   const isRep = mailtoFlow && partnerMode === 'rep';
+  // Cell Medics only: quantities are still shown (the "Qty: N" line below is
+  // untouched), pricing is not — same as Review.
+  const isCellMedics = partner?.slug === 'cell-medics';
 
   const family = getDeviceFamily(device?.id ?? '');
 
@@ -79,10 +82,10 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
     `Hi,\n\nHere's a bundle recommendation for the ${device?.name ?? 'your device'}.\n`,
     ...liveProducts
       .map((p, i) => qtys[i] > 0
-        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]} — ${formatPrice(p.unitPrice * qtys[i], partner)}`
+        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]}${isCellMedics ? '' : ` — ${formatPrice(p.unitPrice * qtys[i], partner)}`}`
         : null)
       .filter(Boolean),
-    `\nBundle sub-total: ${formatPrice(total, partner)}`,
+    ...(isCellMedics ? [] : [`\nBundle sub-total: ${formatPrice(total, partner)}`]),
   ].join('\n');
 
   const shareSubject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
@@ -185,10 +188,12 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
                   </div>
                 </div>
               </div>
-              <div className={['text-[14px] font-semibold text-right sm:ml-auto sm:flex-shrink-0', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
-                {formatPrice(p.unitPrice * qtys[i], partner)}
-                {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">{formatPrice(p.unitPrice, partner)} ×{qtys[i]}</div>}
-              </div>
+              {!isCellMedics && (
+                <div className={['text-[14px] font-semibold text-right sm:ml-auto sm:flex-shrink-0', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
+                  {formatPrice(p.unitPrice * qtys[i], partner)}
+                  {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">{formatPrice(p.unitPrice, partner)} ×{qtys[i]}</div>}
+                </div>
+              )}
             </div>
             {hasUnmetFeatures && (
               <div className="flex items-start gap-2 bg-[#fff8f0] border border-[#f0a060] rounded-lg px-3 py-2.5 mb-4 text-[11px] text-[#7a3a00] leading-relaxed">
@@ -208,14 +213,16 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
         );
       })}
 
-      {/* ── Bundle total ───────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center pt-5 pb-6 border-t border-stone-200 mt-1">
-        <div>
-          <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
-          <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing applied</div>
+      {/* ── Bundle total — hidden for Cell Medics (quantities only, no pricing) ── */}
+      {!isCellMedics && (
+        <div className="flex justify-between items-center pt-5 pb-6 border-t border-stone-200 mt-1">
+          <div>
+            <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
+            <div className="text-[11px] text-stone-400">{totalQty} item{totalQty !== 1 ? 's' : ''} · bundle pricing applied</div>
+          </div>
+          <div className="text-[26px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
         </div>
-        <div className="text-[26px] font-semibold text-stone-900">{formatPrice(total, partner)}</div>
-      </div>
+      )}
 
       {/* ── CTA grid ───────────────────────────────────────────────────── */}
       <div className={`grid ${isRep ? 'grid-cols-1' : hideAddToCart ? 'grid-cols-2' : 'grid-cols-3'} gap-2.5`}>

@@ -160,6 +160,19 @@ partner route.
   Contact Sales (`to:` the partner) + Share Bundle. All three partners have
   `contactEmail` set today, so all three are live on this flow. `data-mode`/`data-partner` on
   `embed.js`/`embed-inline.js` forward through to the iframe's `?mode=`/`/p/{slug}`.
+- **Cell Medics certified-case flow + no pricing** (`cell-medics` only; config in
+  `src/lib/cellMedicsCertified.ts`). The certified question only shows for the two
+  devices with a certified case — iPad 11" (A16) → `HTA6024`, iPhone 17 → `HPA3224`;
+  every other device skips straight to the feature list. Certified = yes continues
+  through Environment → Review → Bundle (instead of jumping to Contact Sales) with the
+  bundle locked to that one case, accessories limited to `CWX144`/`CWX202`, mounts
+  scored normally. Both cases are RFQ in BC; `/api/bundle` bypasses the RFQ exclusion
+  only for those two SKUs, and ignores any `certifiedCaseSku` not in that list. Prices
+  and sub-totals are hidden everywhere for Cell Medics (Review, Bundle, the contact
+  confirmation screen, and both Share/Contact mailto bodies) — quantities still show.
+  Verified with Playwright: both certified flows return the right case/mount/accessory
+  with zero `$` amounts anywhere; iPhone 16 on Cell Medics shows no certified question;
+  ZONES and the default app still route certified = yes straight to contact.
 - **Plain-text only** — mailto: bodies can't render HTML/tables in any mail client;
   this is a hard platform limitation, not a gap. A real HTML "quote" email would need
   a backend email-sending service (Resend/SendGrid), which is a deliberate future item.

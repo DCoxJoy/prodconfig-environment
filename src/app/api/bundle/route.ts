@@ -9,6 +9,7 @@ import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
 import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
 import { ALL_FEATURES } from '../../../lib/catalog';
 import { applyPartnerAllowlist } from '../../../lib/partners';
+import { CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS, CELL_MEDICS_CERTIFIED_CASE_SKUS } from '../../../lib/cellMedicsCertified';
 import { BundleItem, BundleOption, FeatureId, type IphoneScenarios, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
@@ -214,6 +215,13 @@ interface BundleRequest {
   features: FeatureId[];
   scenarios: Partial<IphoneScenarios & TabletScenarios>;
   partnerSlug?: string;
+  // Cell Medics certified flow only — when set, locks the bundle to this one case SKU
+  // (skips case scoring/the 2-option diversity pick entirely, since there's only ever
+  // one candidate) and restricts accessory selection to
+  // CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS. Mount selection is intentionally left to run
+  // through the same scoring as any standard bundle — every mount in the catalog is a
+  // "MagConnect"-branded product already, so no extra mount filtering is needed.
+  certifiedCaseSku?: string;
 }
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
@@ -222,6 +230,11 @@ export async function POST(request: Request) {
   try {
     const body: BundleRequest = await request.json();
     const { deviceName, isIphone, features, scenarios, partnerSlug } = body;
+    // Ignored unless it's one of the known certified case SKUs, so a raw call can't pin
+    // an arbitrary (e.g. wrong-device) case.
+    const certifiedCaseSku = body.certifiedCaseSku && CELL_MEDICS_CERTIFIED_CASE_SKUS.includes(body.certifiedCaseSku)
+      ? body.certifiedCaseSku
+      : undefined;
 
     // Fetch all BC products (cached 5 min)
     const allProducts = await getAllProducts();
@@ -235,22 +248,32 @@ export async function POST(request: Request) {
     // and CPA310HS specifically — this selector builds bundles by pairing individual
     // case/mount/accessory SKUs, so pre-assembled bundle products aren't valid
     // candidates for any of those slots.
+    // Cell Medics certified flow only: HTA6024/HPA3224 are both RFQ-flagged in BC
+    // (a human must normally be involved before selling them), but the certified
+    // flow is meant to show/select them directly — so the RFQ exclusion is bypassed
+    // for a product only when it's both the request's own certifiedCaseSku *and* one
+    // of the two known certified case SKUs, never for an arbitrary RFQ product a
+    // caller might pass in.
     const EXCLUDED_PRODUCT_TYPES = ['Mount and Case', 'Mount Bundles'];
+    const isCertifiedCaseOverride = (sku: string) =>
+      !!certifiedCaseSku && sku === certifiedCaseSku && CELL_MEDICS_CERTIFIED_CASE_SKUS.includes(sku);
     const active = applyPartnerAllowlist(
       products
-        .filter(p => p.cf.product_status !== 'Request for Quote')
+        .filter(p => p.cf.product_status !== 'Request for Quote' || isCertifiedCaseOverride(p.sku))
         .filter(p => !EXCLUDED_PRODUCT_TYPES.includes(p.cf.product_type as string))
         .filter(p => p.sku !== 'CPA310HS'),
       partnerSlug,
     );
 
-    // ── Cases: device-specific ─────────────────────────────────────────────
-    const cases = active
-      .filter(p => p.cf.product_type === 'Cases')
-      .filter(p => getDeviceCompatList(p.cf).includes(deviceName));
+    // ── Cases: device-specific, or pinned to exactly one certified case ────
+    const cases = certifiedCaseSku
+      ? active.filter(p => p.cf.product_type === 'Cases' && p.sku === certifiedCaseSku)
+      : active
+          .filter(p => p.cf.product_type === 'Cases')
+          .filter(p => getDeviceCompatList(p.cf).includes(deviceName));
 
     if (cases.length === 0) {
-      console.warn(`[/api/bundle] No BC cases found for device: "${deviceName}"`);
+      console.warn(`[/api/bundle] No BC cases found for device: "${deviceName}"${certifiedCaseSku ? ` (certified case ${certifiedCaseSku})` : ''}`);
       return NextResponse.json({ options: [] });
     }
 
@@ -268,7 +291,9 @@ export async function POST(request: Request) {
     // compatible_case_skus (e.g. PCA213 → CWA659MP only) would suppress every
     // universal accessory for a device, even when paired with a different case that
     // PCA213 doesn't fit at all.
-    const allAccessories = active.filter(p => p.cf.product_type === 'Accessories');
+    const allAccessories = certifiedCaseSku
+      ? active.filter(p => p.cf.product_type === 'Accessories' && CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS.includes(p.sku))
+      : active.filter(p => p.cf.product_type === 'Accessories');
     const specificAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).includes(deviceName));
     const universalAccessories = allAccessories.filter(p => getDeviceCompatList(p.cf).length === 0);
     const effectiveFeatures = [...new Set([...features, ...getImpliedFeatures(scenarios, isIphone)])];
