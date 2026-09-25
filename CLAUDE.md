@@ -165,8 +165,13 @@ partner route.
   devices with a certified case — iPad 11" (A16) → `HTA6024`, iPhone 17 → `HPA3224`;
   every other device skips straight to the feature list. Certified = yes continues
   through Environment → Review → Bundle (instead of jumping to Contact Sales) with the
-  bundle locked to that one case, accessories limited to `CWX144`/`CWX202`, mounts
-  scored normally. Both cases are RFQ in BC; `/api/bundle` bypasses the RFQ exclusion
+  bundle locked to that one case, accessories limited to `CWX144`/`CWX202`, and mounts
+  limited to the MagConnect HD line (`CELL_MEDICS_CERTIFIED_MOUNT_SKUS` — no VESA
+  `MVU232`/`MVU332`, no non-HD mounts), scored normally within that pool. When more
+  than one mount scores, Option 2 is the same case with the runner-up mount (e.g.
+  wall → MMU331 vs MMU231, vehicle → MMU332 vs MMU232), and the Review tabs label
+  options by mount name since the case is identical; iPhone, "Not mounted", and
+  Forklift/Pole (only MMU230 qualifies) stay single-option. Both cases are RFQ in BC; `/api/bundle` bypasses the RFQ exclusion
   only for those two SKUs, and ignores any `certifiedCaseSku` not in that list. Prices
   and sub-totals are hidden everywhere for Cell Medics (Review, Bundle, the contact
   confirmation screen, and both Share/Contact mailto bodies) — quantities still show.

@@ -9,7 +9,7 @@ import { getEnrichment, hasEnrichment } from '../../../lib/enrichment';
 import { inferEnrichmentBatch, ProductForEnrichment } from '../../../lib/claudeEnrichment';
 import { ALL_FEATURES } from '../../../lib/catalog';
 import { applyPartnerAllowlist } from '../../../lib/partners';
-import { CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS, CELL_MEDICS_CERTIFIED_CASE_SKUS } from '../../../lib/cellMedicsCertified';
+import { CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS, CELL_MEDICS_CERTIFIED_CASE_SKUS, CELL_MEDICS_CERTIFIED_MOUNT_SKUS } from '../../../lib/cellMedicsCertified';
 import { BundleItem, BundleOption, FeatureId, type IphoneScenarios, TabletScenarios } from '../../../types';
 
 // ─── Custom field helpers ─────────────────────────────────────────────────────
@@ -218,9 +218,8 @@ interface BundleRequest {
   // Cell Medics certified flow only — when set, locks the bundle to this one case SKU
   // (skips case scoring/the 2-option diversity pick entirely, since there's only ever
   // one candidate) and restricts accessory selection to
-  // CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS. Mount selection is intentionally left to run
-  // through the same scoring as any standard bundle — every mount in the catalog is a
-  // "MagConnect"-branded product already, so no extra mount filtering is needed.
+  // CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS, and mount selection to
+  // CELL_MEDICS_CERTIFIED_MOUNT_SKUS (MagConnect HD only, no VESA).
   certifiedCaseSku?: string;
 }
 
@@ -278,7 +277,9 @@ export async function POST(request: Request) {
     }
 
     // ── Mounts: Universal, scored by scenario ──────────────────────────────
-    const mounts = active.filter(p => p.cf.product_type === 'Mounts');
+    const mounts = certifiedCaseSku
+      ? active.filter(p => p.cf.product_type === 'Mounts' && CELL_MEDICS_CERTIFIED_MOUNT_SKUS.includes(p.sku))
+      : active.filter(p => p.cf.product_type === 'Mounts');
     const mountSurface = (scenarios as TabletScenarios).mount_surface;
 
     // ── Accessories: device-specific takes priority over universal ────────────
@@ -386,11 +387,14 @@ export async function POST(request: Request) {
     // Bold and Extreme cases have VESA mounting holes → full mount pool.
     // Slim, Pro, Go, Edge → drill-only mounts excluded; adhesive or combo mounts only.
     // HD mounts (drill+adhesive) qualify for every series since adhesive option is always present.
-    const caseWithMounts = topCases.map(caseProduct => {
+    // Certified flow only has one case, so Option 2 is that same case with the
+    // runner-up mount instead — when a second compatible mount exists.
+    const caseWithMounts = topCases.flatMap(caseProduct => {
       const caseEnrichment  = getEnrichment(caseProduct.sku);
       const isVesaCapable   = caseEnrichment.features?.includes('vesa_compatible') ?? false;
+      const selectedAccessory = selectAccessoryForCase(caseProduct.sku);
 
-      let selectedMount: (typeof products)[0] | null = null;
+      let rankedMounts: (typeof products)[0][] = [];
       if (!isIphone && mountSurface && mountSurface !== 'na') {
         const scored = mounts
           .map(p => {
@@ -405,12 +409,13 @@ export async function POST(request: Request) {
           })
           .filter(x => x.score > 0)
           .sort((a, b) => b.score - a.score);
-        selectedMount = scored[0]?.p ?? null;
+        rankedMounts = scored.map(x => x.p);
       }
 
-      const selectedAccessory = selectAccessoryForCase(caseProduct.sku);
-
-      return { caseProduct, selectedMount, selectedAccessory };
+      const mountChoices = certifiedCaseSku && rankedMounts.length > 1
+        ? rankedMounts.slice(0, 2)
+        : [rankedMounts[0] ?? null];
+      return mountChoices.map(selectedMount => ({ caseProduct, selectedMount, selectedAccessory }));
     });
 
     // ── Collect product IDs we need variant IDs for ────────────────────────

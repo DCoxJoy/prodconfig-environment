@@ -25,6 +25,12 @@ export const CELL_MEDICS_CERTIFIED_CASE_SKUS = Object.values(CELL_MEDICS_CERTIFI
 // request, instead of the full catalog.
 export const CELL_MEDICS_CERTIFIED_ACCESSORY_SKUS = ['CWX144', 'CWX202'];
 
+// The only mounts the certified flow may select from: the active MagConnect HD line.
+// Deliberately excludes the VESA HD mounts (MVU232/MVU332) and every non-HD mount.
+export const CELL_MEDICS_CERTIFIED_MOUNT_SKUS = [
+  'MMU205', 'MMU230', 'MMU231', 'MMU232', 'MMU331', 'MMU332', 'MMU333',
+];
+
 export function getCellMedicsCertifiedCaseSku(deviceId: string): string | null {
   return CELL_MEDICS_CERTIFIED_CASE_BY_DEVICE[deviceId] ?? null;
 }

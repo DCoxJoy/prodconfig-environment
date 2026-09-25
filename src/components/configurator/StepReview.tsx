@@ -94,6 +94,7 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
 
   // Bundle option tabs come from live BC data when available, else from hardcoded catalog
   const bundleOptions = liveBundleOptions ?? (isIphone ? BP_IPHONE : BP_TABLET);
+  const sameCaseAllOptions = bundleOptions.every(o => o.items[0].sku === bundleOptions[0].items[0].sku);
 
   const total    = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * (qtys[i] ?? 0), 0);
   const totalQty = qtys.reduce((a, b) => a + b, 0);
@@ -172,7 +173,10 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
               ].join(' ')}
             >
               Option {i + 1}
-              <div className="text-[11px] font-normal mt-0.5 opacity-80">{opt.items[0].name}</div>
+              {/* Same case in every option (certified flow) → label by mount instead */}
+              <div className="text-[11px] font-normal mt-0.5 opacity-80">
+                {(sameCaseAllOptions && opt.items.find(it => it.type === 'Mount')?.name) || opt.items[0].name}
+              </div>
             </button>
           ))}
         </div>
