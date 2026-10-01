@@ -30,8 +30,8 @@ export function buildPartnerMailto({
   const isRep = mode === 'rep';
   const showBundle = source === 'escalation' || source === 'manual';
   const total = liveProducts.reduce((sum, p, i) => sum + p.unitPrice * (qtys[i] ?? 0), 0);
-  // Cell Medics only: quantities, no pricing — same as the Review/Bundle steps.
-  const hidePrices = partner.slug === 'cell-medics';
+  // Partners with hidePrices: quantities, no pricing — same as the Review/Bundle steps.
+  const hidePrices = !!partner.hidePrices;
 
   const subject = isRep
     ? `Bundle Quote from ${partner.name}`

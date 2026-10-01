@@ -33,9 +33,9 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
   // layout unchanged until one is added.
   const mailtoFlow = !!partner?.contactEmail;
   const isRep = mailtoFlow && partnerMode === 'rep';
-  // Cell Medics only: quantities are still shown (the "Qty: N" line below is
+  // Partners with hidePrices (PartnerConfig): quantities are still shown (the "Qty: N" line below is
   // untouched), pricing is not — same as Review.
-  const isCellMedics = partner?.slug === 'cell-medics';
+  const hidePrices = !!partner?.hidePrices;
 
   const family = getDeviceFamily(device?.id ?? '');
 
@@ -82,10 +82,10 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
     `Hi,\n\nHere's a bundle recommendation for the ${device?.name ?? 'your device'}.\n`,
     ...liveProducts
       .map((p, i) => qtys[i] > 0
-        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]}${isCellMedics ? '' : ` — ${formatPrice(p.unitPrice * qtys[i], partner)}`}`
+        ? `• ${p.type}: ${p.name} (${p.sku}) ×${qtys[i]}${hidePrices ? '' : ` — ${formatPrice(p.unitPrice * qtys[i], partner)}`}`
         : null)
       .filter(Boolean),
-    ...(isCellMedics ? [] : [`\nBundle sub-total: ${formatPrice(total, partner)}`]),
+    ...(hidePrices ? [] : [`\nBundle sub-total: ${formatPrice(total, partner)}`]),
   ].join('\n');
 
   const shareSubject = `Bundle recommendation for ${device?.name ?? 'your device'}`;
@@ -188,7 +188,7 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
                   </div>
                 </div>
               </div>
-              {!isCellMedics && (
+              {!hidePrices && (
                 <div className={['text-[14px] font-semibold text-right sm:ml-auto sm:flex-shrink-0', excluded ? 'text-stone-400' : 'text-stone-900'].join(' ')}>
                   {formatPrice(p.unitPrice * qtys[i], partner)}
                   {qtys[i] > 1 && <div className="text-[11px] font-normal text-stone-400">{formatPrice(p.unitPrice, partner)} ×{qtys[i]}</div>}
@@ -213,8 +213,8 @@ export default function StepBundle({ onContactSales, onFeatureGap, onAddToCart }
         );
       })}
 
-      {/* ── Bundle total — hidden for Cell Medics (quantities only, no pricing) ── */}
-      {!isCellMedics && (
+      {/* ── Bundle total — hidden for hidePrices partners (quantities only, no pricing) ── */}
+      {!hidePrices && (
         <div className="flex justify-between items-center pt-5 pb-6 border-t border-stone-200 mt-1">
           <div>
             <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>

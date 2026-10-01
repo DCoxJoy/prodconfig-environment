@@ -139,9 +139,9 @@ partner route.
   `src/lib/partners.ts`. Adding a partner, a SKU allowlist, a brand color, or a
   contact email is a one-line edit there, never a code change — confirmed adding
   `zones` touched no other file (only a non-functional comment elsewhere named the
-  other two slugs as an example). `zones`' `brandColor` (`#0B1F3D`) and
-  `contactEmail` (`david.cox@thejoyfactory.com`) are both placeholders pending the
-  real values from ZONES.
+  other two slugs as an example). `zones`' `brandColor` is `#005596` (ZONES logo
+  blue, sampled from their site); its `contactEmail` (`david.cox@thejoyfactory.com`)
+  is still a placeholder pending the real address from ZONES.
 - **Branding:** partner name replaces "BUNDLE BUILDER" in the header and the intro
   splash's kicker; `brandColor` (if set) overrides `--color-brand`/`--color-brand-hover`
   for the whole app via an inline style, so every `bg-brand`/`text-brand`/`border-brand`
@@ -178,6 +178,12 @@ partner route.
   Verified with Playwright: both certified flows return the right case/mount/accessory
   with zero `$` amounts anywhere; iPhone 16 on Cell Medics shows no certified question;
   ZONES and the default app still route certified = yes straight to contact.
+- **No-pricing partners (`PartnerConfig.hidePrices`)** — set on `cell-medics` and
+  `zones`. Hides every price and sub-total in the flow (Review, Bundle, the contact
+  confirmation screen, and both Share/Contact mailto bodies in customer and rep mode);
+  quantities and qty controls still show. Turning it on for another partner is a
+  one-line edit in `partners.ts`. Verified with Playwright: ZONES customer + rep flows
+  show zero `$` amounts anywhere; Partner One IT (unset) still shows prices.
 - **Plain-text only** — mailto: bodies can't render HTML/tables in any mail client;
   this is a hard platform limitation, not a gap. A real HTML "quote" email would need
   a backend email-sending service (Resend/SendGrid), which is a deliberate future item.

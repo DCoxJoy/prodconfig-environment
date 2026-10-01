@@ -18,6 +18,9 @@ export interface PartnerConfig {
   // no label), the default app's behavior. `rate` is a plain multiplier applied to the
   // USD amount; update it directly here if it drifts, no other code changes needed.
   currency?: { code: string; rate: number };
+  // Hides every price and sub-total in the flow (Review, Bundle, contact confirmation,
+  // and both mailto bodies) — quantities still show. Unset = prices shown as usual.
+  hidePrices?: boolean;
 }
 
 export const PARTNERS: Record<string, PartnerConfig> = {
@@ -30,6 +33,7 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     // Cell Medics LTD is Canadian; BC's catalog prices are USD. Rate is the reciprocal
     // of the CAD→USD rate provided (1 CAD ≈ $0.72 USD, so 1 USD ≈ 1/0.72 ≈ 1.3889 CAD).
     currency: { code: 'CAD', rate: 1.3889 },
+    hidePrices: true,
   },
   'partner-one-it': {
     slug: 'partner-one-it',
@@ -42,9 +46,10 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     slug: 'zones',
     name: 'ZONES: First Choice IT',
     skuAllowlist: [], // populate once this partner provides their SKU list
-    brandColor: '#0B1F3D', // placeholder deep navy blue — swap for ZONES' real brand color
+    brandColor: '#005596', // ZONES logo blue, sampled from their site
     contactEmail: 'david.cox@thejoyfactory.com', // TODO: placeholder — replace once ZONES provides their real address
     // No currency override — prices display in USD as-is, same as Partner One IT.
+    hidePrices: true,
   },
 };
 

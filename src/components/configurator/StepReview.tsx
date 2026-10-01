@@ -29,9 +29,10 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
 
   // Cell Medics only: certified='yes' locks the bundle to that device's one certified
   // case (see /api/bundle's certifiedCaseSku handling) instead of the normal scored
-  // pick from the full catalog. Also drives hiding pricing below (Cell Medics wants
-  // quantities only, for every bundle — certified or not).
+  // pick from the full catalog.
   const isCellMedics = partner?.slug === 'cell-medics';
+  // Partners with hidePrices (PartnerConfig): quantities only, no pricing.
+  const hidePrices = !!partner?.hidePrices;
   const certifiedCaseSku = isCellMedics && certified === 'yes'
     ? getCellMedicsCertifiedCaseSku(device?.id ?? '') ?? undefined
     : undefined;
@@ -256,14 +257,14 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
                       <div className="text-[12px] text-stone-500 mt-0.5">
                         {isZero
                           ? <span className="text-stone-400 italic">Excluded from cart</span>
-                          : !isCellMedics && `${formatPrice(p.unitPrice, partner)} each`
+                          : !hidePrices && `${formatPrice(p.unitPrice, partner)} each`
                         }
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:gap-1.5 sm:flex-shrink-0">
                     <QtyControl value={qtys[i] ?? 0} onChange={v => changeQty(i, v)} />
-                    {!isCellMedics && (
+                    {!hidePrices && (
                       <div className={[
                         'text-[14px] font-semibold text-right',
                         isZero ? 'text-stone-300' : 'text-stone-900',
@@ -291,8 +292,8 @@ export default function StepReview({ onConfirm, onEscalate }: StepReviewProps) {
             );
           })}
 
-          {/* ── Bundle total — hidden for Cell Medics (quantities only, no pricing) ── */}
-          {!isCellMedics && (
+          {/* ── Bundle total — hidden for hidePrices partners (quantities only, no pricing) ── */}
+          {!hidePrices && (
             <div className="flex justify-between items-center pt-5 border-t border-stone-200 mt-1 mb-6">
               <div>
                 <div className="text-[13px] font-medium text-stone-600">Bundle sub-total</div>
