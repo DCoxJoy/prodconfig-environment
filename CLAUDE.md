@@ -139,8 +139,8 @@ partner route.
   `src/lib/partners.ts`. Adding a partner, a SKU allowlist, a brand color, or a
   contact email is a one-line edit there, never a code change — confirmed adding
   `zones` touched no other file (only a non-functional comment elsewhere named the
-  other two slugs as an example). `zones`' `brandColor` is `#005596` (ZONES logo
-  blue, sampled from their site); its `contactEmail` (`david.cox@thejoyfactory.com`)
+  other two slugs as an example). `zones`' `brandColor` is `#005299` (ZONES' official company
+  blue); its `contactEmail` (`david.cox@thejoyfactory.com`)
   is still a placeholder pending the real address from ZONES.
 - **Branding:** partner name replaces "BUNDLE BUILDER" in the header and the intro
   splash's kicker; `brandColor` (if set) overrides `--color-brand`/`--color-brand-hover`

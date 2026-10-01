@@ -46,7 +46,7 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     slug: 'zones',
     name: 'ZONES: First Choice IT',
     skuAllowlist: [], // populate once this partner provides their SKU list
-    brandColor: '#005596', // ZONES logo blue, sampled from their site
+    brandColor: '#005299', // ZONES' official company color
     contactEmail: 'david.cox@thejoyfactory.com', // TODO: placeholder — replace once ZONES provides their real address
     // No currency override — prices display in USD as-is, same as Partner One IT.
     hidePrices: true,
