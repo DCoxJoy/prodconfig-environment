@@ -29,7 +29,7 @@ export const PARTNERS: Record<string, PartnerConfig> = {
     name: 'Cell Medics LTD',
     skuAllowlist: [], // populate once Cell Medics LTD provides their SKU list
     brandColor: '#ea526f', // Cell Medics LTD's own brand color
-    contactEmail: 'service@cellmedics.ca', // placeholder, confirmed usable for now
+    contactEmail: 'lisa@cellmedics.ca',
     // Cell Medics LTD is Canadian; BC's catalog prices are USD. Rate is the reciprocal
     // of the CAD→USD rate provided (1 CAD ≈ $0.72 USD, so 1 USD ≈ 1/0.72 ≈ 1.3889 CAD).
     currency: { code: 'CAD', rate: 1.3889 },

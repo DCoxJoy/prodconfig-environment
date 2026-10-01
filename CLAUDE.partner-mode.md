@@ -22,8 +22,8 @@ production) — merged to `main` and live once that review was done.
   configure rep vs. customer for a real embedded deployment.
 - **`PartnerConfig.contactEmail?: string`** — the new gate for the entire feature.
   Partner One IT: `sales@partneroneit.com` (the checklist's own placeholder —
-  **still needs confirming as the real address**). Cell Medics LTD: `service@cellmedics.ca`
-  (a placeholder explicitly confirmed usable for now). **Every behavior below only
+  **still needs confirming as the real address**). Cell Medics LTD: `lisa@cellmedics.ca`
+  (the real address, replacing the earlier `service@cellmedics.ca` placeholder). **Every behavior below only
   activates once a partner's `contactEmail` is set** (`partnerMailtoEnabled` /
   `mailtoFlow` in the code) — a partner without one keeps exactly today's behavior
   (Contact sales + Share bundle, full HubSpot-backed form) rather than being switched
@@ -31,7 +31,7 @@ production) — merged to `main` and live once that review was done.
   safety default, not something the checklist specified directly — it's what made
   turning this on for Cell Medics LTD a one-line config edit with zero code changes,
   exactly as designed. Verified: Cell Medics LTD now shows the same rep/customer
-  behavior as Partner One IT (mailto to `service@cellmedics.ca` in both modes,
+  behavior as Partner One IT (mailto to `lisa@cellmedics.ca` in both modes,
   HubSpot form no longer reachable), with Partner One IT and the default app both
   unaffected by the change.
 - **Rep view (Bundle step)** — single full-width "Send a Quote" button (grid drops to
