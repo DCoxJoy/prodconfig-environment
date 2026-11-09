@@ -71,6 +71,7 @@ export const PRODUCT_ENRICHMENT: Record<string, ProductEnrichment> = {
   'RVU101':    { mount_surface: ['wall'],            bundle_priority: 1, solution_type_override: ['drill down'] },
   // Bold — VESA + MagConnect compatible
   'CWA302MP':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 1 },
+  'CWA3122MP': { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 1 },
   'MWA336MP':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 2 },
   'CWA652MP':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 2 },
   'CWA302KL':  { features: ['vesa_compatible', 'magconnect'], series: 'Bold',    bundle_priority: 2 },

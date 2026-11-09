@@ -325,6 +325,14 @@ curl -s -X POST http://localhost:3000/api/admin/enrich \
 # 4. Commit enrichment.ts
 ```
 
+**A new case for a new device needs that device added too.** Cases are matched by
+their BC `device_compatibility` string, so a case whose device isn't in
+`DEVICE_GROUPS` (`catalog.ts`) can never be picked: no user can select its device.
+Add the device with the exact BC string as `name` and the right `family` (which sets
+its Features questions), plus a `PRODUCT_ENRICHMENT` entry. Status alone doesn't hide
+a product — only `Request for Quote` is excluded; `Coming Soon`/`Pre-Order` show
+normally. Example: `CWA3122MP` → added `iPad mini (A20 Pro)` (`ipad_mini`).
+
 ### Enrichment field reference
 | Field | Applies to | Values | Effect |
 |-------|-----------|--------|--------|
